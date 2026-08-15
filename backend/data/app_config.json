@@ -1,14 +1,10 @@
 {
   "app_name": "家庭记账",
-  "latest_version_code": 7,
-  "latest_version_name": "0.5.0",
+  "latest_version_code": 6,
+  "latest_version_name": "0.4.2",
   "apk_url": "http://124.223.74.139:8001/app-debug.apk",
-  "changelog": "On-device OCR + differential update",
+  "changelog": "版本对齐重新打包发布：修复多处问题，优化记账体验",
   "default_server_url": "http://124.223.74.139:8000/",
-  "apk_md5": "d80eb60961293116d98b55b31b21874b",
-  "apk_size": 109071189,
-  "patch_url": "http://124.223.74.139:8001/app-debug-v6-to-v7.patch",
-  "patch_base_version_code": 6,
-  "patch_md5": "64247759c9caff45d31dfd2e68ab4e48",
-  "patch_size": 182416
+  "apk_md5": "d8f438b64c2419a1ea3f2c02c3936221",
+  "apk_size": 32491147
 }

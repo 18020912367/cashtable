@@ -32,3 +32,19 @@ app.include_router(rules.router)
 app.include_router(ai.router)
 app.include_router(statistics.router)
 app.include_router(app_config.router)
+
+
+if __name__ == '__main__':
+    """直接运行：python -m app.main
+
+    绑定 0.0.0.0 同时支持本地局域网与云服务器访问；
+    端口通过环境变量 PORT 配置，仅允许 8000~8009（与云安全组放行范围一致）。
+    """
+    import os
+
+    import uvicorn
+
+    port = int(os.getenv('PORT', '8000'))
+    if not 8000 <= port <= 8009:
+        raise SystemExit(f'端口 PORT 必须位于 8000~8009，当前为 {port}，请检查云安全组是否放行')
+    uvicorn.run('app.main:app', host='0.0.0.0', port=port)

@@ -1,0 +1,21 @@
+serverAddr = "124.223.74.139"
+serverPort = 7000
+
+auth.method = "token"
+auth.token = "c63e82287b214e77812cba4830706ee0"
+
+# 云端 8000 → 本地后端 API
+[[proxies]]
+name = "cashtable-api"
+type = "tcp"
+localIP = "127.0.0.1"
+localPort = 8000
+remotePort = 8000
+
+# 云端 8001 → 本地 APK 静态服务
+[[proxies]]
+name = "cashtable-apk"
+type = "tcp"
+localIP = "127.0.0.1"
+localPort = 8001
+remotePort = 8001

@@ -1,0 +1,14 @@
+bindAddr = "0.0.0.0"
+bindPort = 7000
+
+auth.method = "token"
+auth.token = "c63e82287b214e77812cba4830706ee0"
+
+# 仅放行本工具使用的公网端口 8000~8009（与云安全组一致）
+allowPorts = [
+  { start = 8000, end = 8009 },
+]
+
+log.to = "/var/log/frps.log"
+log.level = "info"
+log.maxDays = 7
