@@ -29,6 +29,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
@@ -81,6 +82,7 @@ fun AddScreen(
     vm: AppViewModel,
     onBack: () -> Unit,
     initial: com.cashtable.app.data.TransactionDto? = null,
+    onOcr: (() -> Unit)? = null,
 ) {
     val editing = initial != null
     val initialCatId = initial?.category_id
@@ -211,7 +213,13 @@ fun AddScreen(
                     )
                 }
             }
-            Spacer(Modifier.width(48.dp))
+            if (onOcr != null) {
+                IconButton(onClick = onOcr) {
+                    Icon(Icons.Filled.PhotoCamera, contentDescription = "截图记账")
+                }
+            } else {
+                Spacer(Modifier.width(48.dp))
+            }
         }
 
         // 金额显示

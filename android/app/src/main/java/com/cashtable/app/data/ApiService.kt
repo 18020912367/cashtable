@@ -1,10 +1,13 @@
 package com.cashtable.app.data
 
+import okhttp3.MultipartBody
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.Multipart
 import retrofit2.http.PATCH
 import retrofit2.http.POST
+import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
 
@@ -44,4 +47,9 @@ interface ApiService {
 
     @GET("api/app/config")
     suspend fun appConfig(): AppConfigDto
+
+    /** 截图识别（P3）：上传支付截图，返回交易时间/内容/类型/金额。 */
+    @Multipart
+    @POST("api/ai/extract/")
+    suspend fun extractTransaction(@Part file: MultipartBody.Part): VisionExtractDto
 }

@@ -47,6 +47,8 @@ data class AppConfigDto(
     val latest_version_code: Int,
     val latest_version_name: String,
     val apk_url: String,
+    /** 配置内容指纹（服务端 MD5）：用于排查本地缓存了旧配置的问题。 */
+    val config_fingerprint: String? = null,
     val changelog: String,
     val default_server_url: String,
 )
@@ -86,4 +88,15 @@ data class BatchResultDto(
     val total: Int,
     val imported: Int,
     val skipped: Int,
+)
+
+/** 截图识别结果（/api/ai/extract/）：字段与后端 VisionExtractResponse 一致。 */
+data class VisionExtractDto(
+    val transaction_time: String?,
+    val description: String?,
+    val transaction_type: String?,
+    val category_id: Int?,
+    val kind: String?,
+    val amount: Double?,
+    val source: String,
 )

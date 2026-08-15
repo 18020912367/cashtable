@@ -170,7 +170,7 @@ fun MeScreen(vm: AppViewModel) {
             text = { Text(vm.appConfig?.changelog ?: "") },
             confirmButton = {
                 TextButton(onClick = {
-                    vm.openApkDownload()
+                    vm.startUpdateDownload()
                     updateState = null
                 }) { Text("立即更新") }
             },

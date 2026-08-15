@@ -1,12 +1,14 @@
 package com.cashtable.app.ui
 
 import android.app.Application
+import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.core.content.FileProvider
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
 import com.cashtable.app.BuildConfig
 import com.cashtable.app.data.AppConfigDto
 import com.cashtable.app.data.CategoryDto
@@ -14,6 +16,11 @@ import com.cashtable.app.data.Prefs
 import com.cashtable.app.data.Repository
 import com.cashtable.app.data.TransactionDto
 import com.cashtable.app.data.UserDto
+import com.cashtable.app.data.VisionExtractDto
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
 
 /** 全局状态：服务器地址、记账人、分类缓存；数据加载与记账写入。 */
 class AppViewModel(app: Application) : AndroidViewModel(app) {
@@ -117,13 +124,61 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun hasNewVersion(): Boolean =
         appConfig?.let { it.latest_version_code > BuildConfig.VERSION_CODE } ?: false
 
-    /** 用系统浏览器/下载器打开 APK 下载地址。 */
-    fun openApkDownload() {
+    // ---- App 内下载更新 ----
+    var downloading by mutableStateOf(false)
+        private set
+    var downloadProgress by mutableStateOf(0f)
+        private set
+    var downloadError by mutableStateOf<String?>(null)
+
+    /** App 内下载最新 APK（进度见 downloading/downloadProgress），完成后触发系统安装。 */
+    fun startUpdateDownload() {
         val url = appConfig?.apk_url ?: return
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+        if (downloading) return
+        val app = getApplication<Application>()
+        val dest = File(app.cacheDir, "update/app-update.apk")
+        dest.parentFile?.mkdirs()
+        dest.delete() // 下载前清理旧包
+        downloading = true
+        downloadProgress = 0f
+        downloadError = null
+        viewModelScope.launch {
+            val ok = withContext(Dispatchers.IO) {
+                repository.downloadApk(url, dest) { p -> downloadProgress = p }
+            }
+            downloading = false
+            if (ok && dest.exists() && dest.length() > 0) {
+                installApk(app, dest)
+            } else {
+                downloadError = "下载失败，请检查网络后重试"
+            }
+        }
+    }
+
+    /** 通过系统安装器安装 APK（FileProvider 授权）。 */
+    private fun installApk(context: Context, file: File) {
+        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, "application/vnd.android.package-archive")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
-        getApplication<Application>().startActivity(intent)
+        try {
+            context.startActivity(intent)
+        } catch (_: Exception) {
+            downloadError = "无法启动安装，请在系统设置中允许安装未知应用"
+        }
+    }
+
+    /** 截图识别（P3）：上传图片 → 结构化字段；失败返回 null 并置 serverError。 */
+    suspend fun extractFromImage(bytes: ByteArray, mime: String): VisionExtractDto? {
+        return try {
+            serverError = null
+            repository.extractFromImage(bytes, mime)
+        } catch (e: Exception) {
+            serverError = e.message ?: "识别失败，请重试"
+            null
+        }
     }
 
     /** 按条件拉取当月全部账单（分页聚合，最多 200/页）。 */

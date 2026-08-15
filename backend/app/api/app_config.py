@@ -2,6 +2,7 @@
 
 配置保存在 data/app_config.json（与数据库同目录），改配置无需重启后端。
 """
+import hashlib
 import json
 
 from fastapi import APIRouter
@@ -36,5 +37,12 @@ def load_app_config() -> dict:
 
 @router.get('/config')
 def get_app_config() -> dict:
-    """App 通用配置：版本检查与默认服务器地址下发。"""
-    return load_app_config()
+    """App 通用配置：版本检查与默认服务器地址下发。
+
+    附加 config_fingerprint（配置内容 MD5）：App 端据此判断配置是否变化，
+    防止本地缓存旧配置导致"提示已是最新版本"的假象。
+    """
+    cfg = load_app_config()
+    raw = json.dumps(cfg, ensure_ascii=False, sort_keys=True)
+    cfg['config_fingerprint'] = hashlib.md5(raw.encode('utf-8')).hexdigest()
+    return cfg

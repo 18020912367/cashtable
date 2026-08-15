@@ -147,6 +147,19 @@ class ClassifyResponse(BaseModel):
     source: str = 'none'  # rule / temp / llm / none
 
 
+# ---------- 截图识别（P3） ----------
+
+class VisionExtractResponse(BaseModel):
+    """支付截图识别结果：字段与 App 端 VisionExtractDto 对齐。"""
+    transaction_time: Optional[str] = None   # 'YYYY-MM-DD HH:MM'
+    description: Optional[str] = None        # 交易内容
+    transaction_type: Optional[str] = None   # 分类名
+    category_id: Optional[int] = None        # 匹配到的分类 id
+    kind: Optional[str] = None               # expense / income
+    amount: Optional[float] = None           # 正=收入，负=支出
+    source: str = 'llm'
+
+
 # ---------- 统计 ----------
 
 class MonthlyStatOut(BaseModel):

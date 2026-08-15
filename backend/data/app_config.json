@@ -1,10 +1,10 @@
 {
   "app_name": "家庭记账",
-  "latest_version_code": 6,
-  "latest_version_name": "0.4.2",
+  "latest_version_code": 12,
+  "latest_version_name": "0.5.5",
   "apk_url": "http://124.223.74.139:8001/app-debug.apk",
-  "changelog": "版本对齐重新打包发布：修复多处问题，优化记账体验",
+  "changelog": "截图记账分类优化：网格仅显示一级分类，长按图标弹列式二级分类选择（AI 自动识别二级类不受影响）",
   "default_server_url": "http://124.223.74.139:8000/",
-  "apk_md5": "d8f438b64c2419a1ea3f2c02c3936221",
-  "apk_size": 32491147
+  "apk_md5": "abf2f3d836b4feb71452c290f915754f",
+  "apk_size": 32540935
 }

@@ -1,17 +1,25 @@
 package com.cashtable.app.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FabPosition
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -24,11 +32,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.cashtable.app.ui.components.MainTab
 import com.cashtable.app.ui.theme.CashtableTheme
+import com.cashtable.app.ui.theme.TextGray
 
 /** 页面路由。 */
 sealed class Screen {
@@ -36,6 +47,7 @@ sealed class Screen {
     data object Stats : Screen()
     data object Me : Screen()
     data object Add : Screen()
+    data object Ocr : Screen()
     data class Edit(val tx: com.cashtable.app.data.TransactionDto) : Screen()
 }
 
@@ -62,11 +74,43 @@ fun CashtableApp(vm: AppViewModel = viewModel()) {
                 text = { Text(vm.appConfig!!.changelog) },
                 confirmButton = {
                     TextButton(onClick = {
-                        vm.openApkDownload()
+                        vm.startUpdateDownload()
                         showUpdate = false
                     }) { Text("立即更新") }
                 },
                 dismissButton = { TextButton(onClick = { showUpdate = false }) { Text("稍后") } },
+            )
+        }
+
+        // App 内下载进度
+        if (vm.downloading) {
+            AlertDialog(
+                onDismissRequest = {},
+                title = { Text("正在下载更新") },
+                text = {
+                    Column {
+                        LinearProgressIndicator(
+                            progress = { vm.downloadProgress },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            "已下载 ${(vm.downloadProgress * 100).toInt()}%",
+                            modifier = Modifier.align(Alignment.CenterHorizontally),
+                            color = TextGray,
+                        )
+                    }
+                },
+                confirmButton = {},
+            )
+        }
+        // 下载失败提示
+        vm.downloadError?.let { err ->
+            AlertDialog(
+                onDismissRequest = { vm.downloadError = null },
+                title = { Text("更新失败") },
+                text = { Text(err) },
+                confirmButton = { TextButton(onClick = { vm.downloadError = null }) { Text("确定") } },
             )
         }
 
@@ -78,7 +122,12 @@ fun CashtableApp(vm: AppViewModel = viewModel()) {
             screen is Screen.Add -> {
                 // 全面屏手势/系统返回键：返回明细页，而非退出应用
                 BackHandler { screen = Screen.Detail }
-                AddScreen(vm = vm, onBack = { screen = Screen.Detail })
+                AddScreen(vm = vm, onBack = { screen = Screen.Detail }, onOcr = { screen = Screen.Ocr })
+            }
+            screen is Screen.Ocr -> {
+                // 截图记账（P3）
+                BackHandler { screen = Screen.Detail }
+                OcrScreen(vm = vm, onBack = { screen = Screen.Detail })
             }
             screen is Screen.Edit -> {
                 // 编辑账单：复用记一笔页，返回明细页
@@ -126,8 +175,17 @@ private fun MainScaffold(
         },
         floatingActionButton = {
             if (screen is Screen.Detail) {
-                FloatingActionButton(onClick = { onNavigate(Screen.Add) }) {
-                    Icon(Icons.Filled.Add, contentDescription = "记一笔")
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    // 加号（记一笔）右侧并排相机（截图记账），尺寸一致仅图标
+                    FloatingActionButton(onClick = { onNavigate(Screen.Add) }) {
+                        Icon(Icons.Filled.Add, contentDescription = "记一笔")
+                    }
+                    FloatingActionButton(onClick = { onNavigate(Screen.Ocr) }) {
+                        Icon(Icons.Filled.PhotoCamera, contentDescription = "截图记账")
+                    }
                 }
             }
         },
@@ -135,7 +193,7 @@ private fun MainScaffold(
     ) { innerPadding ->
         Box(Modifier.padding(innerPadding)) {
             when (screen) {
-                is Screen.Detail -> DetailScreen(vm) { tx -> onNavigate(Screen.Edit(tx)) }
+                is Screen.Detail -> DetailScreen(vm, onEdit = { tx -> onNavigate(Screen.Edit(tx)) })
                 is Screen.Stats -> StatsScreen(vm)
                 is Screen.Me -> MeScreen(vm)
                 else -> {}
