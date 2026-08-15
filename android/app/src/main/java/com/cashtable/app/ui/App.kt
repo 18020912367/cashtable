@@ -29,6 +29,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -48,14 +49,25 @@ sealed class Screen {
     data object Me : Screen()
     data object Add : Screen()
     data object Ocr : Screen()
+    data class AutoAccount(val seq: Int) : Screen()
     data class Edit(val tx: com.cashtable.app.data.TransactionDto) : Screen()
 }
 
 @Composable
-fun CashtableApp(vm: AppViewModel = viewModel()) {
+fun CashtableApp(
+    vm: AppViewModel = viewModel(),
+    autoAccountingSeq: Int = 0,
+) {
     CashtableTheme {
         var screen by remember { mutableStateOf<Screen>(Screen.Detail) }
         val currentUser = vm.currentUser
+
+        // 悬浮球点击 → 跳转「自动记账」页；seq 每次递增，保证重复进入时页面全新（重新读相册识别）
+        LaunchedEffect(autoAccountingSeq) {
+            if (autoAccountingSeq > 0) {
+                screen = Screen.AutoAccount(autoAccountingSeq)
+            }
+        }
 
         // 启动即加载分类缓存与 App 配置（记一笔页/明细筛选/版本检查依赖）
         LaunchedEffect(Unit) {
@@ -63,11 +75,11 @@ fun CashtableApp(vm: AppViewModel = viewModel()) {
             vm.loadAppConfig()
         }
 
-        // 服务端有更高版本 → 弹更新提示
+        // 服务端有更高版本 → 弹更新提示（自动记账快速流程中不打扰）
         var showUpdate by remember { mutableStateOf(false) }
         LaunchedEffect(vm.appConfig) { showUpdate = vm.hasNewVersion() }
 
-        if (showUpdate && vm.appConfig != null) {
+        if (showUpdate && vm.appConfig != null && screen !is Screen.AutoAccount) {
             AlertDialog(
                 onDismissRequest = { showUpdate = false },
                 title = { Text("发现新版本 v${vm.appConfig!!.latest_version_name}") },
@@ -125,9 +137,17 @@ fun CashtableApp(vm: AppViewModel = viewModel()) {
                 AddScreen(vm = vm, onBack = { screen = Screen.Detail }, onOcr = { screen = Screen.Ocr })
             }
             screen is Screen.Ocr -> {
-                // 截图记账（P3）
+                // 截图记账（P3）：相册选图 → 识别 → 确认表单
                 BackHandler { screen = Screen.Detail }
                 OcrScreen(vm = vm, onBack = { screen = Screen.Detail })
+            }
+            screen is Screen.AutoAccount -> {
+                // 自动记账（悬浮球入口，0.7.0）：key(seq) 保证每次点悬浮球都是全新页面
+                BackHandler { screen = Screen.Detail }
+                val seq = (screen as Screen.AutoAccount).seq
+                key(seq) {
+                    AutoAccountScreen(vm = vm, onBack = { screen = Screen.Detail })
+                }
             }
             screen is Screen.Edit -> {
                 // 编辑账单：复用记一笔页，返回明细页

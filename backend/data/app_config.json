@@ -1,10 +1,10 @@
 {
   "app_name": "家庭记账",
-  "latest_version_code": 12,
-  "latest_version_name": "0.5.5",
+  "latest_version_code": 18,
+  "latest_version_name": "0.7.1",
   "apk_url": "http://124.223.74.139:8001/app-debug.apk",
-  "changelog": "截图记账分类优化：网格仅显示一级分类，长按图标弹列式二级分类选择（AI 自动识别二级类不受影响）",
+  "changelog": "修复自动记账读取相册：Android 13+ 需相册读取权限（READ_MEDIA_IMAGES），授权后自动读取最新截图；新增「从相册选择」兜底（同截图记账页选图逻辑）",
   "default_server_url": "http://124.223.74.139:8000/",
-  "apk_md5": "abf2f3d836b4feb71452c290f915754f",
-  "apk_size": 32540935
+  "apk_md5": "dc8a72fba34a12dba0d56eca52a6ea91",
+  "apk_size": 32606910
 }

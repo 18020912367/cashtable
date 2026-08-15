@@ -1,7 +1,7 @@
 # 家庭记账小工具 · 极简版设计文档
 
-> 版本：v0.3（v0.2 演进稿）
-> 定位：不超过 4 人的家庭内部自用小工具。FastAPI + SQLite 轻量后端，Android App 作为入口（截图 OCR + 悬浮球截图记账 + AI 自动分类）。
+> 版本：v0.7
+> 定位：不超过 4 人的家庭内部自用小工具。FastAPI + SQLite 轻量后端（本地运行 + frp 穿透公网），Android App 作为入口（手动记账 + 截图 OCR + 悬浮球自动记账 + AI 自动分类 + App 内更新）。
 > 简化原则：**不做认证、不做密码、不做 HTTPS、不做复杂聚合与图表美化**，数据表直连查询 + 筛选条件，能满足基本记账留存即可。
 
 ---
@@ -11,20 +11,8 @@
 ### 1.1 定位与边界
 
 - 仅个人与家庭成员（≤4 人）使用，数据不敏感、无并发压力。
-- 核心能力：手动记账、账单查询与筛选、截图 OCR 记账、悬浮球截图记账（OCR 视觉识别 + AI 自动分类）。
+- 核心能力：手动记账、账单查询与筛选、截图 OCR 记账、悬浮球自动记账（系统截屏 + 自动读取相册 + AI 识别与分类）、App 内更新。
 - 账号信息**手动写入 users 表**（无注册/登录/管理员界面），App 端选择"当前记账人"即可记账。
-
-### 1.2 相比 v0.1 的简化项
-
-| 原方案 | 简化后 |
-|---|---|
-| PostgreSQL + Redis | SQLite 单文件 |
-| Django + DRF + 权限体系 | FastAPI，无权限、无认证 |
-| 账号注册 + 邀请码 + 登录限流 | 无注册登录，users 表手写 |
-| HTTPS + 域名 | HTTP 直连 IP:端口 |
-| 复杂统计/图表 | 仅基础筛选查询，统计可选（最简 GROUP BY） |
-| Family/Membership 多角色 | 去掉，共用一张 transactions 表，`created_by` 记记账人 |
-| 无障碍自动记账（读节点树，改版即失效） | 悬浮球截图 OCR（看画面，抗改版）+ AI 自动分类 |
 
 ---
 
@@ -32,14 +20,18 @@
 
 ```
 ┌──────────────────────── Android App (Kotlin) ────────────────────────┐
-│ 记账人选择(本地) · 记一笔 · 账单列表+筛选 · 截图OCR · 悬浮球截图记账 │
+│ 记账人选择(本地) · 记一笔 · 账单列表+筛选 · 截图OCR · 悬浮球自动记账 │
 └───────────────┬──────────────────────────────────────────────────────┘
-                │ HTTP (http://服务器IP:8000，无加密)
+                │ HTTP（公网 http://124.223.74.139:8000 / 局域网 http://本机IP:8000，无加密）
+┌───────────────▼─────────── 云端服务器（124.223.74.139）──────────────┐
+│  frps 0.70.1：8000 → 本地后端 · 8001 → 本地 APK 静态服务             │
+│  （仅做隧道转发，无应用逻辑；安全组放行 7000/15020/8000~8009）        │
+└───────────────┬──────────────────────────────────────────────────────┘
+                │ frp 隧道（本地 frpc 回连云端 7000）
 ┌───────────────▼──────────────────────────────────────────────────────┐
-│                       云服务器（轻量配置即可）                         │
-│   uvicorn ── FastAPI ── SQLAlchemy ── SQLite 单文件 (cashtable.db)    │
-│                    │                                                  │
-│                    └─ 每日备份脚本：cp cashtable.db → 备份目录(保留30天) │
+│                       本地电脑（Windows）                             │
+│  FastAPI(uvicorn) ── SQLAlchemy ── SQLite 单文件 (cashtable.db)      │
+│  python -m http.server 8001 ── backend/data/apks/（APK 分发，局域网同网段可直连） │
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -55,11 +47,13 @@
 | 数据库 | SQLite（单文件 `cashtable.db`） | 4 人用量毫无压力，免部署 |
 | ORM | SQLAlchemy 2.x | 表结构即代码，DDL 统一管理；不引入迁移框架（表手动建即可） |
 | Android | Kotlin + Jetpack Compose | 单 Activity 架构 |
-| OCR | 端侧 ONNX Runtime + PP-OCRv4 mobile | 无 GMS，端侧识别，零延迟 |
+| 图像识别 | 多模态大模型（后端调用，主 `glm-4v-flash`、备用 `glm-4.6v-flash`） | 截图上传后端识别（/api/ai/extract/）；429 退避重试 + 自动切备用模型 |
 | AI 分类 | OpenAI 兼容 LLM API（DeepSeek/通义等） | 本地规则未命中时调用，结果自动学习为规则；api_key 配在后端 |
-| 悬浮球截图 | WindowManager 悬浮球 + MediaProjection | 悬浮球常驻，点击截当前屏（需悬浮窗 + 录屏授权） |
+| 悬浮球自动记账 | WindowManager 悬浮球（仅入口） | 悬浮球常驻，点击跳转自动记账页；用户手动系统截屏 → 相册读取（MediaStore）→ 后端大模型识别 |
+| App 内更新 | OkHttp 下载 + FileProvider 安装 | `/api/app/config` 版本检查（含 config_fingerprint），下载到 cacheDir 后系统安装页确认 |
 | 网络 | Retrofit + OkHttp | 与 FastAPI 对接 |
-| 部署 | uvicorn 进程（可加 supervisor/docker 二选一） | 直接跑最简单 |
+| 网络穿透/分发 | frp（云端 frps ↔ 本地 frpc） | 公网 8000/8001 隧道回连本地；APK 静态服务同时支持局域网直连本机 IP:8001 |
+| 部署 | 本地 uvicorn 进程 + 云端 frps 隧道 | 后端/DB 在本地电脑运行，云端仅转发 |
 | 备份 | cron 每日 `cp` SQLite 文件 | 保留 30 天，可手动下载 |
 
 ---
@@ -184,6 +178,8 @@ INSERT INTO categories (name, kind, sort) VALUES
 | GET/POST/DELETE | `/api/category-rules/` | 固定分类规则列表 / 新增 / 删除（设置页管理） |
 | GET | `/api/category-rules/pending/` | 待确认的临时规则（LLM 建议列表） |
 | POST | `/api/ai/classify/` | 按交易内容返回推荐分类（固定规则 → 临时规则 → LLM） |
+| POST | `/api/ai/extract/` | 截图上传识别（multipart）→ 金额/内容/分类/时间/来源（大模型视觉识别，P3/P4 共用） |
+| GET | `/api/app/config` | App 版本检查/APK 下载地址/默认服务器（附 config_fingerprint 供排查缓存） |
 | GET | `/api/statistics/monthly/` | 可选：按月收支合计（最简 GROUP BY） |
 
 ### 5.1 账单查询筛选参数
@@ -304,7 +300,7 @@ GROUP BY month, kind;
 - 月份切换 + 分类支出排行列表（金额从大到小）+ 收支合计；饼图/趋势图美化后续再加
 
 **我的页**
-- 切换记账人（点开下拉选择）、分类管理（增删一级/二级分类）、分类规则管理（查看/删除固定规则与待确认规则）、服务器地址、导入记录、关于
+- 切换记账人（点开下拉选择）、分类管理（增删一级/二级分类）、分类规则管理（查看/删除固定规则与待确认规则）、悬浮球记账开关（权限引导）、检查更新、服务器地址、导入记录、关于
 
 **分类图标映射（Material Symbols 名称）**
 
@@ -324,37 +320,63 @@ GROUP BY month, kind;
 |---|---|
 | 首页/记一笔 | 支出/收入切换、金额（自动带正负号）、分类、交易时间、交易内容；记账人=当前选择 |
 | 账单列表 | 按日分组，顶部筛选：月份、分类、记账人、关键词；下拉刷新 |
-| 截图 OCR | 相册/分享进入 → 端侧识别 → 逐行确认/编辑 → 批量提交 |
-| 悬浮球记账 | 悬浮球开关 + 权限引导（悬浮窗/录屏）+ 最近识别记录 |
-| 设置 | 切换记账人、分类管理、分类规则管理、服务器地址、导入记录 |
+| 截图记账 | 相册选图（系统 Photo Picker） → 大模型识别 → 确认/微调 → 记账 |
+| 自动记账（悬浮球入口） | 先系统截屏 → 点悬浮球 → 自动读相册最新截图识别预录 → 保存后删图并返回原界面；「从相册选择」兜底 |
+| 悬浮球开关 | 「我的」页开关 + 权限引导（悬浮窗/通知）；前台服务常驻悬浮球 |
+| 设置 | 切换记账人、分类管理、分类规则管理、悬浮球记账、检查更新、服务器地址、导入记录 |
 
-### 6.4 截图 OCR 模块（复用 v0.1 设计，交互简化）
-
-```
-截图来源：悬浮球截图（MediaProjection）/ 相册选择 / 系统分享"导入到App" → 端侧 OCR（ONNX Runtime + PP-OCRv4）
-  └─ 文字块按 Y 轴聚合成流水行
-  └─ 正则提取：时间 / 商户(→交易内容) / 收支(支出→负号、收入→正号) / 金额
-  └─ 列表页可点选修正（分类/收支方向），未知类型标红不提交
-      └─ 确认 → POST /api/transactions/batch/（带 external_id 去重）
-```
-
-### 6.5 悬浮球截图记账（替代无障碍方案）
-
-**为何替代**：无障碍读节点树（DOM），微信/支付宝改版即失效；截图 OCR 是看画面，视觉不变就能识别，更抗改版、实现更简单。
+### 6.4 截图 OCR 模块（后端大模型识别）
 
 ```
-悬浮球常驻（TYPE_APPLICATION_OVERLAY，可拖动/点击）
-  └─ 点击 → MediaProjection 截当前全屏（首次弹系统授权，Android 14+ 重启后需重新授权）
-      └─ 端侧 OCR 识别整屏文字 + 坐标
-      └─ 版面解析：定位金额文本(¥/数字) → 取金额上/下方最近的文本块为商户(→交易内容)，
-          |           按"支付成功页 / 账单详情页"两种版式分别处理
-      └─ 弹确认卡片：预填 金额(带正负号) / 交易内容 / 交易时间
-          ├─ AI 分类：content → /api/ai/classify/ → 推荐分类（可改）
-          └─ 确认 → POST /api/transactions/（保存时自动做规则晋升）
+截图来源：系统截屏（P4 自动记账）/ 相册选择（P3 截图记账）/ 系统分享"导入到App" → 后端大模型识别
+  └─ 返回 金额(带正负号) / 交易内容 / 分类 / 交易时间
+  └─ 确认/微调表单（分类网格可长按选二级）→ POST /api/transactions/（带 external_id 去重）
 ```
 
-- 与手动记一笔共用同一确认卡片，只是字段已预填，用户只需确认/微调。
-- 悬浮球需"悬浮窗 + 录屏（MediaProjection）"两个授权；授权页做引导，token 失效时提示重新授权。
+### 6.5 悬浮球自动记账（P4，系统截屏 + 自动读相册 + 大模型识别）
+
+**目标**：用户在其他 App 看到待记账账单 → 手动系统截屏 → 点悬浮球 → App 自动读取相册最新截图 → 大模型识别预录 → 确认保存后**自动删除该截图并退回原界面**。
+
+**交互流程**
+
+```
+「我的」页「悬浮球记账」开关：
+  ① 检查悬浮窗权限（SYSTEM_ALERT_WINDOW）→ 未开启跳系统设置引导，返回后自动继续
+  ② 启动前台服务 FloatingBallService（foregroundServiceType="specialUse"，Android 14+ 需
+     PROPERTY_SPECIAL_USE_FGS_SUBTYPE 属性声明用途）；开关状态 ON_RESUME 同步刷新
+
+悬浮球常驻（TYPE_APPLICATION_OVERLAY，半透明圆钮，可拖动；仅入口，无任何截屏能力）
+  └─ 点击悬浮球 → Intent 携带 EXTRA_AUTO_ACCOUNTING 启动 MainActivity
+       （NEW_TASK|SINGLE_TOP，onCreate/onNewIntent 检测后 autoAccountingSeq 自增）
+       └─ 进入「自动记账」页（AutoAccountScreen，key(seq) 强制全新实例，样式同截图记账页）
+            ├─ 自动读取相册最新截图：MediaStore 查询（优先 Screenshots 目录，DATE_ADDED DESC）
+            │    权限矩阵：SDK≥33 → READ_MEDIA_IMAGES；SDK≥29 → READ_EXTERNAL_STORAGE；SDK<29 免权限
+            ├─ 未找到 → 提示「请先使用系统截屏后再点悬浮球」+「从相册选择」兜底
+            ├─ 识别：压缩 ≤1600px → POST /api/ai/extract/（复用 P3 大模型识别）→ 预录表单
+            ├─ 用户确认 → POST /api/transactions/ 记账
+            └─ 保存成功后：删除该截图（contentResolver.delete；SDK≥30 失败时用
+                 MediaStore.createDeleteRequest 系统确认弹窗）→ moveTaskToBack(true)
+                 退回点击悬浮球前的原界面（App 退到后台）
+```
+
+**关键实现点**
+
+- 前台服务：`FloatingBallService`（`com.cashtable.app.p4`），`startForeground` 后创建悬浮球；Android 14+ 声明 `foregroundServiceType="specialUse"` + property 子类型。
+- 开关状态：`pendingBallStart`（rememberSaveable，防 Activity 重建丢失）+ ON_RESUME 自动继续授权流程；`justRequestedStart` + Handler 延迟 500ms 收敛服务异步启动，避免"实际已开启但 UI 仍显示未开启"。
+- 相册读取：MediaStore 按 `DATE_ADDED DESC` 取最新一张（优先 `MediaStore.Images.Media.BUCKET_DISPLAY_NAME == 'Screenshots'`）；读取失败或未授权时提示，并可用 Photo Picker（`PickVisualMedia`，免权限系统选图）手动选图兜底。
+- 删除截图：仅限自动读取场景（`autoScreenshot=true`）执行；手动选图不删除；非本 App 写入的媒体删除需系统确认（`createDeleteRequest` 返回 PendingIntent，用 `IntentSenderRequest.Builder` 包装发起）。
+- 返回原界面：记账完成后 `(context as? Activity)?.moveTaskToBack(true)`，App 退到后台，回到点击悬浮球前的第三方 App。
+- 识别复用：AutoAccountScreen 与截图记账页共用 `recognizeUri`（读取压缩 → Repository.extractFromImage → 表单回填），分类网格/表单组件改为 internal 供两页复用。
+
+**权限清单**
+
+| 权限 | 用途 | 说明 |
+|---|---|---|
+| SYSTEM_ALERT_WINDOW | 悬浮球显示 | 设置页引导跳系统设置 |
+| FOREGROUND_SERVICE / FOREGROUND_SERVICE_SPECIAL_USE | 前台服务 | Android 14+ 必需（specialUse 类型） |
+| POST_NOTIFICATIONS | 前台服务通知 | Android 13+ 运行时申请 |
+| READ_MEDIA_IMAGES | 读取相册截图 | Android 13+（API 33）运行时申请 |
+| READ_EXTERNAL_STORAGE | 读取相册截图 | Android 12 及以下（maxSdkVersion=29，API 26-29） |
 
 ### 6.6 基础网络封装
 
@@ -371,21 +393,32 @@ val retrofit = Retrofit.Builder()
 
 ## 7. 部署
 
+**后端/数据库运行在本地电脑（Windows），云端仅做 frp 隧道转发与 APK 公网分发。**
+
 ```
-目录：
-  /opt/cashtable/
-    app/            # FastAPI 代码
-    data/           # cashtable.db（数据目录，勿删除）
-    backup/         # 每日备份
+本地电脑（Windows）：
+  backend/                    # FastAPI 代码（venv）
+    app/                      # 应用代码（config 读 .env，兼容 LLMAKPmode/LLMAPIKEY）
+    data/                     # cashtable.db + app_config.json + apks/（勿删除）
+    scripts/frp/win/.../frpc.toml   # frp 客户端配置（0.70.1）
+  .env                        # 服务器账号/密码、LLM 配置（位于项目根）
+
+云端服务器（124.223.74.139）：
+  /usr/local/frps/frps + frps.toml  # frps 0.70.1，控制端口 7000，token 见配置
+  └─ 仅隧道转发：8000 → 本地后端 · 8001 → 本地 APK 静态服务（无应用逻辑）
+  └─ 安全组放行：7000 / 15020 / 8000~8009
 ```
 
-- 启动：`uvicorn app.main:app --host 0.0.0.0 --port 8000`（cron 保活或 supervisor/docker 二选一）。
-- AI 分类配置：`.env` 中配 `LLM_BASE_URL` / `LLM_API_KEY` / `LLM_MODEL`（OpenAI 兼容，如 DeepSeek）；不配置时自动降级为纯本地规则分类。
+- 启动顺序（本地）：
+  1. 后端：`backend` 目录下 `python -m app.main`（端口 8000，`PORT` 环境变量可覆盖，限 8000~8009）；
+  2. APK 静态服务：`backend/data/apks/` 下 `python -m http.server 8001`（局域网同网段设备可直连 `http://本机IP:8001`）；
+  3. frp 客户端：运行 `backend/scripts/frp/win/.../frpc`（回连云端 7000，建立公网隧道）。
+- LLM 配置：`.env` 配 `LLMAKPmode`/`LLMAPIKEY`（config.py 兼容读取），BASE_URL 默认智谱 `https://open.bigmodel.cn/api/paas/v4`；主模型 `glm-4v-flash`、备用 `glm-4.6v-flash`（`LLM_FALLBACK_MODELS`），429 退避重试后自动切备用。
+- App 版本/下载配置：`backend/data/app_config.json`（版本号/APK 地址/MD5/changelog，改配置无需重启后端）；发版后核对磁盘文件与接口返回值一致（`/api/app/config` 附 `config_fingerprint` 排查缓存）。
 - **HTTP 直连，不做 HTTPS**（内部自用、数据不敏感）。
-- 备份：cron 每日 `cp data/cashtable.db backup/cashtable-$(date +%F).db`，保留 30 天，需要时手动下载。
-- 可选加固（如公网暴露有顾虑，非必须）：
-  - 云安全组仅放行家人常用出口 IP；
-  - 或 nginx 加一个简单 basic_auth（一条配置的事，但按你的要求默认不做）。
+- 备份：每日 `cp` SQLite 文件，保留 30 天，需要时手动下载。
+- 可选加固（如公网暴露有顾虑，非必须）：云安全组仅放行家人常用出口 IP；或 nginx 加简单 basic_auth。
+- 已知遗留：云端 frps / 本地 frpc / 本地后端均为手工启动，无开机自启（后续可加 systemd/启动脚本）。
 
 ---
 
@@ -396,11 +429,12 @@ val retrofit = Retrofit.Builder()
 | P0 | FastAPI 骨架 + SQLite DDL + 健康检查 `/health` | 可运行后端 |
 | P1 | 各表查询/写入接口 + 筛选 + batch 去重 + 可选月度统计 | 全量 API |
 | P2 | Android 工程 + 记账人选择 + 记一笔 + 账单列表/筛选 | 可用 App（手动记账） |
-| P3 | 截图 OCR（端侧识别 + 批量确认） | 截图记账 |
-| P4 | 悬浮球截图记账（MediaProjection + 版面解析 + AI 分类 + 规则晋升） | 悬浮球记账 |
-| P5 | 服务器部署 + 每日备份 | 正式使用 |
+| P3 | 截图记账（相册选图 → 后端大模型识别 → 确认/微调 → 记账） | 截图记账 |
+| P4 | 悬浮球自动记账（用户手动系统截屏 → 悬浮球点击跳转 → 自动读相册最新截图 → 大模型识别预录 → 保存删图 + 退回原界面；悬浮球仅为入口） | 悬浮球自动记账 |
+| P5 | 本地部署（后端 + 8001 APK 静态服务）+ frp 公网穿透 + App 内更新 + 局域网分发 + 每日备份 | 正式使用 |
 
-> 依赖：P0→P1 串行；P2 可与 P1 并行（按接口文档联调）；P3 依赖 P2；P4 依赖 P3（复用 OCR）与 P1 的 `/api/ai/classify/`。
+> 依赖：P0→P1 串行；P2 可与 P1 并行（按接口文档联调）；P3 依赖 P2；P4 依赖 P3（复用 /api/ai/extract/ 与确认表单）。
+> 实际进度：P0~P5 均已落地（0.7.x 运行中）。
 
 ---
 
@@ -408,11 +442,14 @@ val retrofit = Retrofit.Builder()
 
 | 风险 | 对策 |
 |---|---|
-| 截图 OCR 看错金额/商户 | 识别置信度低时确认卡片标黄提示，人工核对后保存 |
-| MediaProjection 授权失效 | Android 14+ token 重启后失效，授权页引导重新授权 |
-| 悬浮球被系统限制/误关 | 悬浮窗权限引导；被关时通知栏提示 |
+| 系统安全页面（FLAG_SECURE）无法截取 | App 不参与截屏，由用户手动系统截屏完成 |
+| 自动记账读不到相册最新截图（权限缺失） | 权限矩阵引导（API 33+ `READ_MEDIA_IMAGES`、API 26-29 `READ_EXTERNAL_STORAGE`）；仍未读到 → 提示「从相册选择」Photo Picker 免权限兜底 |
+| 删除系统截图需系统确认 | `contentResolver.delete` 失败时（SDK≥30）用 `MediaStore.createDeleteRequest` 弹系统确认窗；手动选图场景不删除 |
+| 悬浮球被系统限制/误关 | 悬浮窗权限引导跳系统设置；被关时通知栏提示 |
+| 前台服务类型限制（Android 14+） | 改用 `specialUse` 类型 + `PROPERTY_SPECIAL_USE_FGS_SUBTYPE` 属性声明用途 |
+| 返回原界面失败/悬浮球未反应 | 服务启动状态用 rememberSaveable + ON_RESUME 收敛刷新；点击用 `key(seq)` 保证每次全新页面 |
 | LLM 分类错误 | 分类可改；改选后临时规则标记 discarded，不学错规则 |
-| LLM API 不可用/欠费 | `.env` 未配 key 时自动降级为本地规则分类，功能不中断 |
+| LLM API 不可用/欠费/429 | 模型链主备切换（`glm-4v-flash` → `glm-4.6v-flash`）+ 429 退避重试；无法识别时提示手动记账 |
 | 重复记账 | external_id 端侧查本地 + 服务端唯一索引双重去重 |
 | SQLite 文件损坏/丢失 | 每日 cp 备份保留 30 天，定期手动验证 |
 | HTTP 裸奔公网 | 默认信任家人网络；如暴露公网建议防火墙 IP 白名单（可选） |

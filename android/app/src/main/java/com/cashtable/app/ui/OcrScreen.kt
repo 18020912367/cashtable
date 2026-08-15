@@ -510,8 +510,8 @@ fun OcrScreen(vm: AppViewModel, onBack: () -> Unit) {
     }
 }
 
-/** 把识别结果填入表单。 */
-private fun onExtracted(
+/** 把识别结果填入表单（自动记账页复用）。 */
+internal fun onExtracted(
     result: VisionExtractDto,
     categories: List<CategoryDto>,
     set: (LocalDateTime, String, String, String, CategoryDto?) -> Unit,
@@ -524,8 +524,8 @@ private fun onExtracted(
     set(t, k, a, c, ca)
 }
 
-/** 读取图片并压缩到最大边 1600px（控制上传体积与识别耗时）。 */
-private fun loadCompressed(context: Context, uri: Uri): Pair<ByteArray, Bitmap> {
+/** 读取图片并压缩到最大边 1600px（控制上传体积与识别耗时；自动记账页复用）。 */
+internal fun loadCompressed(context: Context, uri: Uri): Pair<ByteArray, Bitmap> {
     val src = BitmapFactory.decodeStream(context.contentResolver.openInputStream(uri))
     val scale = min(1f, 1600f / max(src.width, src.height))
     val bmp = if (scale < 1f) {
@@ -539,7 +539,7 @@ private fun loadCompressed(context: Context, uri: Uri): Pair<ByteArray, Bitmap> 
 }
 
 @Composable
-private fun KindSegmentOcr(label: String, selected: Boolean, onClick: () -> Unit) {
+internal fun KindSegmentOcr(label: String, selected: Boolean, onClick: () -> Unit) {
     Text(
         text = label,
         style = MaterialTheme.typography.titleMedium,
@@ -551,10 +551,10 @@ private fun KindSegmentOcr(label: String, selected: Boolean, onClick: () -> Unit
     )
 }
 
-/** 分类格（截图记账确认表单用）：选中蓝色底，样式与记一笔页分类网格一致；长按弹二级分类。 */
+/** 分类格（截图记账/自动记账确认表单用）：选中蓝色底，样式与记一笔页分类网格一致；长按弹二级分类。 */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun RowScope.OcrCategoryCell(
+internal fun RowScope.OcrCategoryCell(
     icon: ImageVector,
     name: String,
     selected: Boolean,
