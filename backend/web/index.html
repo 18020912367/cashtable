@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="截记 - 截图即记账，支持截图 AI 记账的记账小工具，提供 Android App 下载。" />
+  <title>截记 - 截图即记账 | 官方下载</title>
+  <link rel="icon" type="image/png" href="assets/logo.png" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- 顶部导航 -->
+  <nav class="nav">
+    <div class="container nav-inner">
+      <div class="brand">
+        <img src="assets/logo.png" alt="截记" />
+        <span>截记</span>
+      </div>
+      <div class="nav-links">
+        <a href="#features">功能</a>
+        <a href="#modes">运行模式</a>
+        <a href="#usage">使用说明</a>
+        <a href="#download">下载</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <header class="hero">
+    <div class="container">
+      <img class="logo-big" src="assets/logo.png" alt="截记 Logo" />
+      <h1>截记</h1>
+      <p class="slogan">截图即记账 · 支付账单一键入账</p>
+      <p class="desc">
+        支持截图 AI 记账的记账小工具：大模型自动识别截图中的金额、时间、分类与交易内容，
+        配合手动记账、悬浮球记账、自动记账，让记账不再繁琐。
+      </p>
+      <div class="btn-row">
+        <a class="btn btn-primary" href="#download">立即下载</a>
+        <a class="btn btn-ghost" href="#usage">查看使用说明</a>
+      </div>
+      <div class="version-badge">Android 最新版：<span id="hero-version">加载中…</span></div>
+    </div>
+  </header>
+
+  <!-- 功能特性 -->
+  <section class="section" id="features">
+    <div class="container">
+      <div class="section-head">
+        <h2>核心功能</h2>
+        <p>从截图到入账，只需一步</p>
+      </div>
+      <div class="feature-grid">
+        <div class="card">
+          <div class="icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#00965e" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+          </div>
+          <h3>截图记账</h3>
+          <p>支付/账单截图交给大模型视觉识别，自动提取金额、时间、分类与交易内容，一键入账。</p>
+        </div>
+        <div class="card">
+          <div class="icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#00965e" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          </div>
+          <h3>悬浮球记账</h3>
+          <p>任意界面点击悬浮球，自动截屏并识别，无需切换 App 即可完成记账。</p>
+        </div>
+        <div class="card">
+          <div class="icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#00965e" stroke-width="2"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4"/><circle cx="12" cy="12" r="3"/></svg>
+          </div>
+          <h3>自动记账</h3>
+          <p>授权后自动读取最新相册截图并识别入账，全程免操作，适合高频消费场景。</p>
+        </div>
+        <div class="card">
+          <div class="icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#00965e" stroke-width="2"><path d="M12 3l7 4v5c0 4.4-3 8.3-7 9-4-0.7-7-4.6-7-9V7z"/><path d="M9 12l2 2 4-4"/></svg>
+          </div>
+          <h3>AI 自动分类</h3>
+          <p>识别结果自动沉淀为分类规则，后续本地规则优先匹配，越用越准。</p>
+        </div>
+        <div class="card">
+          <div class="icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#00965e" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          <h3>多记账人</h3>
+          <p>无需登录，支持多个记账人，随时新增或删除，各记各的账。</p>
+        </div>
+        <div class="card">
+          <div class="icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#00965e" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-6"/></svg>
+          </div>
+          <h3>收支统计</h3>
+          <p>按月、按分类查看收支统计，消费结构一目了然。</p>
+        </div>
+        <div class="card">
+          <div class="icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#00965e" stroke-width="2"><path d="M12 5l7 4v6l-7 4-7-4V9z"/><path d="M9 12l2 2 4-4"/></svg>
+          </div>
+          <h3>明细筛选</h3>
+          <p>按分类、记账人、关键词快速筛选明细，随时找到想查的那笔账。</p>
+        </div>
+        <div class="card">
+          <div class="icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#00965e" stroke-width="2"><path d="M4 17l6-6-6-6M12 19h8"/></svg>
+          </div>
+          <h3>App 内更新</h3>
+          <p>内置更新检查，固定连接云端，有新版本一键下载安装。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 运行模式 -->
+  <section class="section section-alt" id="modes">
+    <div class="container">
+      <div class="section-head">
+        <h2>三种运行模式</h2>
+        <p>本地单机、自有服务器、公共服务器，按需选择</p>
+      </div>
+      <div class="mode-grid">
+        <div class="mode-card">
+          <span class="tag tag-local">本地模式（默认）</span>
+          <h3>单机使用</h3>
+          <p>App 自带全部功能与数据库，数据保存在手机中，适合个人记账。</p>
+          <ul>
+            <li>内置 sqlite 数据库</li>
+            <li>截图识别直连大模型（自填 API Key）</li>
+            <li>无需联网服务器</li>
+          </ul>
+        </div>
+        <div class="mode-card">
+          <span class="tag tag-custom">自定义模式</span>
+          <h3>自有服务器</h3>
+          <p>接入自己部署的服务器，多人共享同一数据库。</p>
+          <ul>
+            <li>填写服务器地址/端口/数据库目录</li>
+            <li>多人记账</li>
+            <li>数据在自有云端</li>
+          </ul>
+        </div>
+        <div class="mode-card">
+          <span class="tag tag-full">全功能模式</span>
+          <h3>公共服务器</h3>
+          <p>输入激活码激活公共服务器，使用全部功能，开箱即用。</p>
+          <ul>
+            <li>激活码一键激活</li>
+            <li>数据自动上传云端并每日备份</li>
+            <li>AI 识别走公共服务器</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 使用说明 -->
+  <section class="section" id="usage">
+    <div class="container">
+      <div class="section-head">
+        <h2>快速上手</h2>
+        <p>三步开始记账</p>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <div class="num"></div>
+          <div>
+            <h4>下载并安装</h4>
+            <p>点击下方「立即下载」获取最新版 Android APK，允许安装未知来源应用即可。</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="num"></div>
+          <div>
+            <h4>配置识别能力（可选）</h4>
+            <p>本地模式请在「我的 → LLM 设置」填写大模型 API Key 并测试连接；全功能模式激活后自动使用公共识别服务。</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="num"></div>
+          <div>
+            <h4>开始记账</h4>
+            <p>点击右下角「+」手动记账，或相机图标选择支付截图自动识别入账；悬浮球、自动记账让记录更轻松。</p>
+          </div>
+        </div>
+      </div>
+      <p class="steps-link">完整操作说明见 <a href="/docs/用户操作说明.md" target="_blank">用户操作说明</a>（可下载查阅）。</p>
+    </div>
+  </section>
+
+  <!-- 下载 -->
+  <section class="section section-alt" id="download">
+    <div class="container">
+      <div class="section-head">
+        <h2>下载 Android 版</h2>
+        <p>扫码或直接点击下载，安装后即可使用</p>
+      </div>
+      <div class="download-box">
+        <div class="download-head">
+          <div>
+            <div class="ver">v<span id="dl-version">—</span></div>
+            <div class="date" id="dl-date">—</div>
+          </div>
+          <div>截记 · Android</div>
+        </div>
+        <div class="download-body">
+          <p class="changelog" id="dl-changelog">加载更新说明…</p>
+          <div class="download-meta">
+            <div class="meta-item"><div class="k">文件大小</div><div class="v" id="dl-size">—</div></div>
+            <div class="meta-item"><div class="k">MD5 校验</div><div class="v" id="dl-md5">—</div></div>
+            <div class="meta-item"><div class="k">安装包类型</div><div class="v">Android APK</div></div>
+          </div>
+          <a class="btn btn-primary" id="dl-btn" href="apk/app-debug.apk">立即下载 · 安装</a>
+          <p style="margin-top:12px;font-size:12.5px;color:#6b7280;text-align:center;">
+            首次安装请允许“未知来源应用”；覆盖安装不丢失数据。安装遇到问题可参阅上方使用说明。
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="section" id="faq">
+    <div class="container">
+      <div class="section-head">
+        <h2>常见问题</h2>
+      </div>
+      <div class="faq">
+        <details>
+          <summary>截图识别不准确怎么办？</summary>
+          <p>确保已正确填写大模型 API Key 并通过「测试连接」；截图尽量清晰、无遮挡，金额与商户信息完整。</p>
+        </details>
+        <details>
+          <summary>如何激活全功能模式？</summary>
+          <p>「我的 → 切换模式」选择全功能模式，输入 12 位激活码并「校验并激活」，首次激活会自动上传本地数据到云端。</p>
+        </details>
+        <details>
+          <summary>检查更新提示无新版本？</summary>
+          <p>更新检查固定连接云端（与运行模式无关）。0.8.0 及更早版本请先手动下载最新 APK 安装一次。</p>
+        </details>
+        <details>
+          <summary>多人使用会冲突吗？</summary>
+          <p>自定义/全功能模式为多人共享同一数据库，请错峰记账，避免同时写入造成冲突。</p>
+        </details>
+        <details>
+          <summary>数据安全吗？</summary>
+          <p>本地模式数据在手机；云端模式数据在服务器并每日备份。请妥善保管激活码与个人数据。</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- 页脚 -->
+  <footer class="footer">
+    <div class="container">
+      <div class="links">
+        <a href="#features">功能</a>
+        <a href="#modes">运行模式</a>
+        <a href="#usage">使用说明</a>
+        <a href="#download">下载</a>
+      </div>
+      <div>截记 · 截图即记账 · 如有问题请联系管理员</div>
+    </div>
+  </footer>
+
+  <script>
+    // 从云端配置接口动态获取版本信息（失败时回退静态默认值）
+    fetch('api/app/config', { cache: 'no-store' })
+      .then(r => r.json())
+      .then(cfg => {
+        const fmtSize = n => (n > 0 ? (n / 1024 / 1024).toFixed(1) + ' MB' : '—');
+        document.getElementById('hero-version').textContent = cfg.latest_version_name || '—';
+        document.getElementById('dl-version').textContent = cfg.latest_version_name || '—';
+        document.getElementById('dl-changelog').textContent = cfg.changelog || '';
+        document.getElementById('dl-size').textContent = fmtSize(cfg.apk_size);
+        document.getElementById('dl-md5').textContent = cfg.apk_md5 || '—';
+        const d = new Date();
+        document.getElementById('dl-date').textContent =
+          d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+      })
+      .catch(() => {
+        document.getElementById('hero-version').textContent = '0.8.3';
+        document.getElementById('dl-version').textContent = '0.8.3';
+        document.getElementById('dl-changelog').textContent = '更新检查优化：始终连接云端检查新版本';
+      });
+  </script>
+</body>
+</html>

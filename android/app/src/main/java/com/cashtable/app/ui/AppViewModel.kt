@@ -3,6 +3,7 @@ package com.cashtable.app.ui
 import android.app.Application
 import android.content.Context
 import android.content.Intent
+import android.provider.Settings
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -10,7 +11,9 @@ import androidx.core.content.FileProvider
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.cashtable.app.BuildConfig
+import com.cashtable.app.data.ActivationCheckResponse
 import com.cashtable.app.data.AppConfigDto
+import com.cashtable.app.data.AppMode
 import com.cashtable.app.data.CategoryDto
 import com.cashtable.app.data.Prefs
 import com.cashtable.app.data.Repository
@@ -22,13 +25,16 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 
-/** 全局状态：服务器地址、记账人、分类缓存；数据加载与记账写入。 */
+/** 全局状态：运行模式、服务器地址、记账人、分类缓存；数据加载与记账写入。 */
 class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     private val prefs = Prefs(app)
-    private val repository = Repository(prefs)
+    private val repository = Repository(prefs, app)
 
     // ---- 基础状态 ----
+    var mode by mutableStateOf(prefs.mode)
+        private set
+
     var serverUrl by mutableStateOf(prefs.serverUrl)
         private set
 
@@ -54,10 +60,111 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     var transactionsVersion by mutableStateOf(0)
         private set
 
-    fun updateServerUrl(url: String) {
-        prefs.serverUrl = url
+    // ---- 模式 / 服务器 / LLM / 激活 ----
+
+    /** 切换运行模式（仅写入偏好；数据刷新由调用方触发 switchMode 后执行）。 */
+    fun switchMode(newMode: AppMode) {
+        prefs.mode = newMode
+        mode = newMode
         serverUrl = prefs.serverUrl
     }
+
+    /** 切换模式后刷新数据：重新拉取记账人与分类；当前记账人失效则清空引导重选。 */
+    suspend fun refreshForMode() {
+        loadUsers()
+        loadCategories()
+        val stillExists = users.any { it.id == currentUser?.id }
+        if (!stillExists) {
+            currentUser = null
+            prefs.currentUserId = null
+            prefs.currentUserName = ""
+        }
+    }
+
+    /** 自定义模式：保存服务器地址 + sqlite 目录。 */
+    fun updateCustomServer(url: String, dbPath: String) {
+        prefs.customServerUrl = url
+        prefs.customDbPath = dbPath
+        serverUrl = prefs.serverUrl
+    }
+
+    // ---- LLM（个人中心维护，加密存储；本地模式截图识别直连大模型） ----
+
+    /** 展示用：只显示头尾的掩码。 */
+    fun llmKeyMasked(): String = Prefs.maskKey(prefs.llmApiKey)
+
+    fun llmKeyConfigured(): Boolean = prefs.llmApiKey.isNotEmpty()
+
+    /** 保存 LLM 配置（Key 加密存储；BaseUrl/模型普通存储）。 */
+    fun saveLlmConfig(apiKey: String, baseUrl: String, model: String) {
+        prefs.llmApiKey = apiKey
+        prefs.llmBaseUrl = baseUrl
+        prefs.llmModel = model
+    }
+
+    fun llmBaseUrl(): String = prefs.llmBaseUrl
+
+    fun llmModel(): String = prefs.llmModel
+
+    /** 保存时若 Key 留空则保留原值。 */
+    fun llmApiKeyForSave(): String = prefs.llmApiKey
+
+    /** 自定义模式：当前保存的服务器地址（供设置页展示）。 */
+    fun customServerUrlForDisplay(): String = prefs.customServerUrl
+
+    /** 自定义模式：当前保存的 sqlite 目录（供设置页展示）。 */
+    fun customDbPathForDisplay(): String = prefs.customDbPath
+
+    /** 测试 LLM 连通性，返回结果文案。 */
+    suspend fun testLlmConnection(): String = withContext(Dispatchers.IO) {
+        repository.testLlmConnection()
+    }
+
+    // ---- 全功能模式激活 ----
+
+    /** 设备标识：ANDROID_ID（Android 10+ 无法取真实 MAC，用系统唯一 ID 代替）。 */
+    fun deviceMac(): String {
+        prefs.deviceMac?.takeIf { it.isNotEmpty() }?.let { return it }
+        val id = Settings.Secure.getString(
+            getApplication<Application>().contentResolver,
+            Settings.Secure.ANDROID_ID,
+        ) ?: ""
+        prefs.deviceMac = id
+        return id
+    }
+
+    fun activationCode(): String = prefs.activationCode
+
+    /** 查询激活状态（全功能模式入口/打开页面时调用）。 */
+    suspend fun checkActivation(code: String): ActivationCheckResponse? = try {
+        serverError = null
+        repository.checkActivation(code, deviceMac())
+    } catch (e: Exception) {
+        serverError = e.message ?: "无法连接服务器"
+        null
+    }
+
+    /** 激活：校验 + 首次激活上传本地库；成功返回 null，失败返回错误文案。 */
+    suspend fun activate(code: String): String? {
+        return try {
+            serverError = null
+            val result = repository.uploadActivationDb(code, deviceMac())
+            if (result.ok) {
+                prefs.activationCode = code
+                prefs.mode = AppMode.Full
+                mode = AppMode.Full
+                serverUrl = prefs.serverUrl
+                refreshForMode()
+                null
+            } else {
+                result.message
+            }
+        } catch (e: Exception) {
+            e.message ?: "激活失败，请重试"
+        }
+    }
+
+    // ---- 记账人 ----
 
     fun updateCurrentUser(user: UserDto) {
         prefs.currentUserId = user.id
@@ -77,6 +184,37 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             false
         } finally {
             firstLoading = false
+        }
+    }
+
+    /** 新增记账人，成功返回新记账人并刷新列表。 */
+    suspend fun createUser(name: String): UserDto? {
+        return try {
+            serverError = null
+            val created = repository.createUser(name)
+            loadUsers()
+            created
+        } catch (e: Exception) {
+            serverError = e.message ?: "新增记账人失败"
+            null
+        }
+    }
+
+    /** 删除记账人（名下账单 created_by 置空）；若删除的是当前记账人则清空当前身份。 */
+    suspend fun deleteUser(userId: Int): Boolean {
+        return try {
+            serverError = null
+            repository.deleteUser(userId)
+            if (currentUser?.id == userId) {
+                currentUser = null
+                prefs.currentUserId = null
+                prefs.currentUserName = ""
+            }
+            loadUsers()
+            true
+        } catch (e: Exception) {
+            serverError = e.message ?: "删除记账人失败"
+            false
         }
     }
 

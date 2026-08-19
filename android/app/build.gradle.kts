@@ -11,8 +11,8 @@ android {
         applicationId = "com.cashtable.app"
         minSdk = 26
         targetSdk = 37
-        versionCode = 18
-        versionName = "0.7.1"
+        versionCode = 22
+        versionName = "0.8.3"
     }
 
     buildTypes {
@@ -59,5 +59,6 @@ dependencies {
     implementation(libs.retrofit)
     implementation(libs.retrofit.converter.gson)
     implementation(libs.okhttp)
+    implementation(libs.security.crypto)
     debugImplementation(libs.compose.ui.tooling)
 }

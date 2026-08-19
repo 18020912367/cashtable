@@ -191,9 +191,9 @@ class FloatingBallService : Service() {
     }
 }
 
-/** 悬浮球本体：蓝色圆形 + 「记」字。 */
+/** 悬浮球本体：绿色圆形 + 「记」字。 */
 private class BallView(context: Context) : View(context) {
-    private val bg = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF2E6FF2.toInt() }
+    private val bg = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF00965E.toInt() }
     private val text = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.WHITE
         textSize = 26f

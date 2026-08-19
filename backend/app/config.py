@@ -25,8 +25,25 @@ _load_dotenv()
 DATA_DIR = BASE_DIR / 'data'
 DATA_DIR.mkdir(exist_ok=True)
 
+# APK 发布目录（云端静态托管，App 更新下载统一走云端：http://<server>/apk/app-debug.apk）
+APK_DIR = DATA_DIR / 'apks'
+APK_DIR.mkdir(exist_ok=True)
+
+# 官网静态站点目录（App 介绍与下载页，服务在 http://<server>/）
+WEB_DIR = BASE_DIR / 'web'
+WEB_DIR.mkdir(exist_ok=True)
+
 # 数据库连接（默认 backend/data/cashtable.db，可通过环境变量覆盖）
 DATABASE_URL = os.getenv('DATABASE_URL', f"sqlite:///{DATA_DIR / 'cashtable.db'}")
+
+# 激活码库（keycode.db，独立于主库）：存"全功能码"（激活码/激活时间/激活设备/是否已激活）
+KEYCODE_DB_PATH = Path(os.getenv('KEYCODE_DB_PATH', str(DATA_DIR / 'keycode.db')))
+
+# 激活库目录（全功能模式：每个激活码一个独立数据库，命名 {激活码}_cashtable.db）
+# 云端（Linux）固定 /home/codefile/cashtabledb；本地 Windows 用 data/activated 便于开发
+_activated_default = Path('/home/codefile/cashtabledb') if os.name != 'nt' else DATA_DIR / 'activated'
+ACTIVATED_DB_DIR = Path(os.getenv('ACTIVATED_DB_DIR', str(_activated_default)))
+ACTIVATED_DB_DIR.mkdir(parents=True, exist_ok=True)
 
 # LLM 配置：优先新变量名，兼容旧变量名（LLMAKPmode / LLMAPIKEY）
 # 默认智谱 base_url；不配置时自动降级为本地规则分类

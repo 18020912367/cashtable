@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
@@ -20,6 +21,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -32,23 +34,23 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.cashtable.app.data.AppMode
 import com.cashtable.app.data.UserDto
-import com.cashtable.app.ui.components.ServerUrlDialog
-import com.cashtable.app.ui.theme.PrimaryBlue
+import com.cashtable.app.ui.theme.PrimaryGreen
 import kotlinx.coroutines.launch
 
-/** 首次启动：选择"当前记账人"（无登录）。 */
+/** 首次启动/当前记账人失效：选择"当前记账人"（可新增；无登录）。 */
 @Composable
 fun UserPickerScreen(
     vm: AppViewModel = viewModel(),
     onDone: () -> Unit,
 ) {
-    var showServerDialog by remember { mutableStateOf(false) }
-    var serverInput by remember { mutableStateOf(vm.serverUrl) }
+    var newName by remember { mutableStateOf("") }
+    var adding by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
-    // 进入时与服务器地址变化后重新拉取记账人
-    LaunchedEffect(vm.serverUrl) {
+    // 进入时拉取记账人（本地模式读本机 sqlite；自定义/全功能模式读服务器）
+    LaunchedEffect(vm.mode) {
         vm.loadUsers()
     }
 
@@ -65,11 +67,43 @@ fun UserPickerScreen(
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            text = "家人共用一个小工具，先选择当前由谁来记账",
+            text = when (vm.mode) {
+                AppMode.Local -> "本地模式：数据保存在本机，先选择当前由谁来记账"
+                AppMode.Custom -> "自定义模式：连接你自己的服务器，选择当前由谁来记账"
+                AppMode.Full -> "全功能模式：数据在云端，选择当前由谁来记账"
+            },
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(16.dp))
+
+        // 新增记账人
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            OutlinedTextField(
+                value = newName,
+                onValueChange = { newName = it },
+                singleLine = true,
+                label = { Text("新记账人姓名") },
+                modifier = Modifier.weight(1f),
+            )
+            Spacer(Modifier.size(8.dp))
+            Button(
+                enabled = newName.isNotBlank() && !adding,
+                onClick = {
+                    adding = true
+                    scope.launch {
+                        val created = vm.createUser(newName)
+                        adding = false
+                        newName = ""
+                        created?.let { u ->
+                            vm.updateCurrentUser(u)
+                            onDone()
+                        }
+                    }
+                },
+            ) { Text(if (adding) "…" else "新增并选择") }
+        }
+        Spacer(Modifier.height(16.dp))
 
         when {
             vm.firstLoading -> {
@@ -81,7 +115,7 @@ fun UserPickerScreen(
                 }
             }
             vm.users.isEmpty() && vm.serverError == null -> {
-                Text("暂无可用的记账人，请确认服务器已启动。")
+                Text("暂无可用的记账人，请在下方新增。")
             }
             else -> {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -107,38 +141,48 @@ fun UserPickerScreen(
         }
 
         Spacer(Modifier.weight(1f))
-        Card(onClick = { showServerDialog = true }) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(Icons.Filled.Settings, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(Modifier.size(12.dp))
-                Column(Modifier.weight(1f)) {
-                    Text("服务器地址", style = MaterialTheme.typography.bodyMedium)
-                    Text(
-                        text = vm.serverUrl,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+        if (vm.mode != AppMode.Local) {
+            Card {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(Icons.Filled.Settings, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.size(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("当前服务器", style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            text = vm.serverUrl,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        } else {
+            Card {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(Icons.Filled.Add, contentDescription = null, tint = PrimaryGreen)
+                    Spacer(Modifier.size(12.dp))
+                    Column {
+                        Text("当前为本地模式", style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            text = "数据仅保存在本机；如需云端多人记账，请到「我的 → 切换模式」",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
             }
         }
-    }
-
-    if (showServerDialog) {
-        ServerUrlDialog(
-            initial = serverInput,
-            onConfirm = { newUrl ->
-                serverInput = newUrl
-                vm.updateServerUrl(newUrl)
-                showServerDialog = false
-            },
-            onDismiss = { showServerDialog = false },
-        )
     }
 }
 
@@ -154,7 +198,7 @@ private fun UserRow(user: UserDto, onClick: () -> Unit) {
             Icon(
                 imageVector = Icons.Filled.Person,
                 contentDescription = null,
-                tint = PrimaryBlue,
+                tint = PrimaryGreen,
             )
             Spacer(Modifier.size(12.dp))
             Text(

@@ -1,8 +1,9 @@
-# 家庭记账小工具 · 极简版设计文档
+# 截记（家庭记账小工具）· 设计文档
 
-> 版本：v0.7
-> 定位：不超过 4 人的家庭内部自用小工具。FastAPI + SQLite 轻量后端（本地运行 + frp 穿透公网），Android App 作为入口（手动记账 + 截图 OCR + 悬浮球自动记账 + AI 自动分类 + App 内更新）。
-> 简化原则：**不做认证、不做密码、不做 HTTPS、不做复杂聚合与图表美化**，数据表直连查询 + 筛选条件，能满足基本记账留存即可。
+> 版本：v0.8
+> 定位：家庭/个人记账小工具（已开源）。FastAPI + SQLite 轻量后端 + Android App。
+> v0.8 起支持**三种运行模式**（本地 / 自定义服务器 / 全功能公共服务器），可打包对外分发。
+> 简化原则：**不做注册登录、不做 HTTPS**，默认本地模式开箱即用，云端多人记账需激活码。
 
 ---
 
@@ -22,16 +23,16 @@
 ┌──────────────────────── Android App (Kotlin) ────────────────────────┐
 │ 记账人选择(本地) · 记一笔 · 账单列表+筛选 · 截图OCR · 悬浮球自动记账 │
 └───────────────┬──────────────────────────────────────────────────────┘
-                │ HTTP（公网 http://124.223.74.139:8000 / 局域网 http://本机IP:8000，无加密）
+                │ HTTP（公网 http://124.223.74.139:8000，无加密）
 ┌───────────────▼─────────── 云端服务器（124.223.74.139）──────────────┐
-│  frps 0.70.1：8000 → 本地后端 · 8001 → 本地 APK 静态服务             │
-│  （仅做隧道转发，无应用逻辑；安全组放行 7000/15020/8000~8009）        │
+│  FastAPI(uvicorn, systemd)：8000 直出 API + /apk APK 静态托管         │
+│  frps 0.70.1：8010 → 本地后端（开发备用通道；安全组放行 7000/8000~8010）│
 └───────────────┬──────────────────────────────────────────────────────┘
-                │ frp 隧道（本地 frpc 回连云端 7000）
+                │ frp 隧道（本地 frpc 回连云端 7000，开发备用）
 ┌───────────────▼──────────────────────────────────────────────────────┐
-│                       本地电脑（Windows）                             │
+│                       本地电脑（Windows，开发环境）                    │
 │  FastAPI(uvicorn) ── SQLAlchemy ── SQLite 单文件 (cashtable.db)      │
-│  python -m http.server 8001 ── backend/data/apks/（APK 分发，局域网同网段可直连） │
+│  （APK 由云端 /apk 静态托管，本地不再分发）                            │
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -52,8 +53,8 @@
 | 悬浮球自动记账 | WindowManager 悬浮球（仅入口） | 悬浮球常驻，点击跳转自动记账页；用户手动系统截屏 → 相册读取（MediaStore）→ 后端大模型识别 |
 | App 内更新 | OkHttp 下载 + FileProvider 安装 | `/api/app/config` 版本检查（含 config_fingerprint），下载到 cacheDir 后系统安装页确认 |
 | 网络 | Retrofit + OkHttp | 与 FastAPI 对接 |
-| 网络穿透/分发 | frp（云端 frps ↔ 本地 frpc） | 公网 8000/8001 隧道回连本地；APK 静态服务同时支持局域网直连本机 IP:8001 |
-| 部署 | 本地 uvicorn 进程 + 云端 frps 隧道 | 后端/DB 在本地电脑运行，云端仅转发 |
+| 网络穿透/分发 | frp（云端 frps ↔ 本地 frpc，仅开发备用通道） | 公网 8000 由云端后端直出（API + /apk APK 静态托管）；frp 仅保留 8010 → 本地后端备用通道 |
+| 部署 | 云端 uvicorn（systemd）+ 本地 frpc 备用通道 | 后端/DB/APK 均在云端运行，本机仅开发联调 |
 | 备份 | cron 每日 `cp` SQLite 文件 | 保留 30 天，可手动下载 |
 
 ---
@@ -167,7 +168,7 @@ INSERT INTO categories (name, kind, sort) VALUES
 
 | 方法 | 路径 | 说明 |
 |---|---|---|
-| GET/POST | `/api/users/` | 记账人列表 / 新增（一般只在 sqlite 手动写） |
+| GET/POST/DELETE | `/api/users/` | 记账人列表 / 新增 / 删除（v0.8 新增 DELETE，名下账单 created_by 置空） |
 | GET/POST | `/api/categories/` | 分类列表（`?kind=expense&parent_id=`）/ 新增 |
 | PATCH/DELETE | `/api/categories/{id}` | 改 / 删 |
 | GET | `/api/transactions/` | 账单查询，筛选参数见下 |
@@ -181,6 +182,10 @@ INSERT INTO categories (name, kind, sort) VALUES
 | POST | `/api/ai/extract/` | 截图上传识别（multipart）→ 金额/内容/分类/时间/来源（大模型视觉识别，P3/P4 共用） |
 | GET | `/api/app/config` | App 版本检查/APK 下载地址/默认服务器（附 config_fingerprint 供排查缓存） |
 | GET | `/api/statistics/monthly/` | 可选：按月收支合计（最简 GROUP BY） |
+| POST | `/api/activate/check` | 激活码校验（全功能模式）：未激活可激活 / 已激活同设备 / 已绑定其他设备 |
+| GET | `/api/activate/status` | 激活状态查询（App 启动/切换模式时调用） |
+| POST | `/api/activate/upload` | 首次激活：上传 App 本地 sqlite → 云端 `{激活码}_cashtable.db`（开 WAL） |
+| GET | `/api/activate/template` | 下载标准 sqlite 模板（自定义模式用户自行导入服务器） |
 
 ### 5.1 账单查询筛选参数
 
@@ -280,7 +285,7 @@ GROUP BY month, kind;
 > 钱迹为商业 App，其图标与图片素材有版权，本项目**仅参考其布局与交互风格**；图标统一使用开源 **Material Symbols**（Apache-2.0，可免费商用），避免直接打包钱迹素材带来的版权问题。
 
 **整体风格**
-- 白底、极简、无广告；主色蓝 `#2E6FF2`（观感贴近钱迹），支出金额深灰、收入金额绿色 `#00B578`。
+- 白底、极简、无广告；主色邮政绿 `#00965E`，支出金额深灰、收入金额绿色 `#00B578`。
 - 底部 3 个 Tab：**明细 / 统计 / 我的**。
 
 **明细页（首页）**
@@ -300,7 +305,7 @@ GROUP BY month, kind;
 - 月份切换 + 分类支出排行列表（金额从大到小）+ 收支合计；饼图/趋势图美化后续再加
 
 **我的页**
-- 切换记账人（点开下拉选择）、分类管理（增删一级/二级分类）、分类规则管理（查看/删除固定规则与待确认规则）、悬浮球记账开关（权限引导）、检查更新、服务器地址、导入记录、关于
+- 切换记账人（点开下拉选择，v0.8 支持**新增/删除**）、切换模式（本地/自定义/全功能）、LLM 设置（Key 只写加密存储 + 测试连接）、自定义服务器设置、全功能激活、分类管理、悬浮球记账开关、检查更新、关于
 
 **分类图标映射（Material Symbols 名称）**
 
@@ -405,13 +410,13 @@ val retrofit = Retrofit.Builder()
 
 云端服务器（124.223.74.139）：
   /usr/local/frps/frps + frps.toml  # frps 0.70.1，控制端口 7000，token 见配置
-  └─ 仅隧道转发：8000 → 本地后端 · 8001 → 本地 APK 静态服务（无应用逻辑）
-  └─ 安全组放行：7000 / 15020 / 8000~8009
+  └─ frps 仅隧道 8010 → 本地后端（开发备用通道）；APK 由云端后端 /apk 静态托管（无应用逻辑）
+  └─ 安全组放行：7000 / 8000~8010
 ```
 
 - 启动顺序（本地）：
   1. 后端：`backend` 目录下 `python -m app.main`（端口 8000，`PORT` 环境变量可覆盖，限 8000~8009）；
-  2. APK 静态服务：`backend/data/apks/` 下 `python -m http.server 8001`（局域网同网段设备可直连 `http://本机IP:8001`）；
+  2. （APK 不再本地分发：更新包由云端 `/apk` 静态托管，App 更新检查固定连接云端）；
   3. frp 客户端：运行 `backend/scripts/frp/win/.../frpc`（回连云端 7000，建立公网隧道）。
 - LLM 配置：`.env` 配 `LLMAKPmode`/`LLMAPIKEY`（config.py 兼容读取），BASE_URL 默认智谱 `https://open.bigmodel.cn/api/paas/v4`；主模型 `glm-4v-flash`、备用 `glm-4.6v-flash`（`LLM_FALLBACK_MODELS`），429 退避重试后自动切备用。
 - App 版本/下载配置：`backend/data/app_config.json`（版本号/APK 地址/MD5/changelog，改配置无需重启后端）；发版后核对磁盘文件与接口返回值一致（`/api/app/config` 附 `config_fingerprint` 排查缓存）。
@@ -431,7 +436,7 @@ val retrofit = Retrofit.Builder()
 | P2 | Android 工程 + 记账人选择 + 记一笔 + 账单列表/筛选 | 可用 App（手动记账） |
 | P3 | 截图记账（相册选图 → 后端大模型识别 → 确认/微调 → 记账） | 截图记账 |
 | P4 | 悬浮球自动记账（用户手动系统截屏 → 悬浮球点击跳转 → 自动读相册最新截图 → 大模型识别预录 → 保存删图 + 退回原界面；悬浮球仅为入口） | 悬浮球自动记账 |
-| P5 | 本地部署（后端 + 8001 APK 静态服务）+ frp 公网穿透 + App 内更新 + 局域网分发 + 每日备份 | 正式使用 |
+| P5 | 云端部署（后端 + APK 静态托管 + App 内更新）+ 每日备份 | 正式使用 |
 
 > 依赖：P0→P1 串行；P2 可与 P1 并行（按接口文档联调）；P3 依赖 P2；P4 依赖 P3（复用 /api/ai/extract/ 与确认表单）。
 > 实际进度：P0~P5 均已落地（0.7.x 运行中）。
@@ -453,3 +458,79 @@ val retrofit = Retrofit.Builder()
 | 重复记账 | external_id 端侧查本地 + 服务端唯一索引双重去重 |
 | SQLite 文件损坏/丢失 | 每日 cp 备份保留 30 天，定期手动验证 |
 | HTTP 裸奔公网 | 默认信任家人网络；如暴露公网建议防火墙 IP 白名单（可选） |
+
+---
+
+## 10. 多模式运行与开源（v0.8）
+
+### 10.1 三种运行模式
+
+App 默认**本地模式**，可在「我的 → 切换模式」随时切换。
+
+| 模式 | 数据存储 | 截图识别（AI） | 适用场景 |
+|---|---|---|---|
+| **本地模式**（默认） | App 自带 sqlite（schema 与后端一致），数据只在本机 | App 直连大模型，使用个人中心配置的 **LLM Key**（EncryptedSharedPreferences 加密存储，只显示头尾、不可复制） | 个人单机使用，无需任何服务器 |
+| **自定义模式** | 用户自建服务器（部署本项目后端 + 导入标准 sqlite 模板），多人共用同一库 | 走后端 `/api/ai/extract/`（服务器配 LLM Key） | 有自己服务器的用户；**注意：多人同时写入存在 SQLite 写锁冲突风险** |
+| **全功能模式** | 公共服务器（`124.223.74.139`），绑定激活码后按激活码路由到独立租户库 | 走公共服务器 API（支持并发，FastAPI async + SQLite WAL） | 直接激活使用全部系统功能 |
+
+### 10.2 激活码与 keycode.db
+
+- 新增独立数据库 **`keycode.db`**（默认 `backend/data/keycode.db`，与主库 cashtable.db 分离），表「全功能码」：
+
+| 字段 | 说明 |
+|---|---|
+| code | 激活码（主键，管理员通过 `backend/scripts/gen_keycode.py` 生成并发放） |
+| activated_at | 激活时间 `'YYYY-MM-DD HH:MM:SS'`（空=未激活） |
+| device_mac | 激活设备标识（App 端取 ANDROID_ID，Android 10+ 无法可靠获取真实 MAC） |
+| is_activated | 0/1 是否已激活 |
+
+- 激活码格式 `JI-XXXX-XXXX-XXXX`；一个激活码首次激活即绑定设备，重复使用会报「已绑定其他设备」。
+
+### 10.3 全功能模式激活流程
+
+```
+「我的 → 切换模式 → 全功能模式」（未激活则先进入激活页）
+  ├─ 输入激活码 → POST /api/activate/upload（multipart：code + device_mac + 本地 cashtable.db）
+  │    ① 服务端校验激活码（不存在 / 已绑定其他设备 → 403）
+  │    ② 保存 App 的 sqlite 为 ACTIVATED_DB_DIR/{激活码}_cashtable.db
+  │    ③ 开启该库 SQLite WAL 模式（并发读写）
+  │    ④ 标记激活（记录激活时间与设备）
+  └─ 激活成功后 App 切换到全功能模式，后续所有数据/AI 请求携带请求头：
+      X-Activate-Code: {激活码}  X-Device-Mac: {ANDROID_ID}
+      由 deps.get_db 校验激活状态后路由到对应租户库（按激活码缓存 engine）。
+```
+
+- 激活接口为 `async`（FastAPI async + 同激活码进程内锁），可支撑并发激活/访问。
+- 云端（Linux）`ACTIVATED_DB_DIR` 固定 `/home/codefile/cashtabledb`；本地 Windows 开发用 `backend/data/activated`。
+- 幂等：同一设备重复激活会覆盖已有租户库（重装后恢复数据用）。
+
+### 10.4 自定义模式与标准模板
+
+- 「我的 → 切换模式 → 自定义模式」填写：服务器地址（IP/域名）+ 端口（仅 8000~8009）+ 服务器上 sqlite 目录。
+- 「下载标准 sqlite 模板」：`GET /api/activate/template`（公共服务器提供，含表结构与初始分类、无数据），下载后导入自己的服务器，再部署本项目后端即可连接。
+- 自定义模式请求不带激活头，走后端默认库 `cashtable.db`。
+
+### 10.5 本地模式数据层与 LLM 直连
+
+- Android 新增原生 `SQLiteDatabase` 数据层（`LocalDbHelper` / `LocalAccountDataSource`），schema 与后端完全一致（users / categories / transactions / category_rules / category_rules_temp / import_records），便于全功能模式激活时直接上传接管。
+- `Repository` 按当前模式路由：本地 → sqlite（IO 线程）；自定义/全功能 → Retrofit API。
+- `LlmClient`：OpenAI 兼容 `/chat/completions` 视觉识别，复用后端系统提示词与时间/金额/分类规范化逻辑；主模型 `glm-4v-flash`，429 退避重试后切备用 `glm-4.6v-flash`；分类候选取自本地 categories 表。
+- 「测试连接」按钮：个人中心 LLM 设置页直接发最小请求验证连通性。
+
+### 10.6 记账人新增/删除
+
+- 「我的 → 切换记账人」：顶部输入框新增记账人；每条记录右侧删除图标（确认后删除，名下账单 `created_by` 置空）。
+- 首次启动页同样支持「新增并选择」。
+- 后端：`POST /api/users/`（已有）、`DELETE /api/users/{id}/`（v0.8 新增）。
+
+### 10.7 命名与 Logo
+
+- App 名称由「家庭记账」改为「截记」（`strings.xml app_name`）。
+- 启动图标使用 `docs/APP logo.png`（打包为 `res/mipmap-nodpi/ic_launcher.png`，替换原自适应矢量图标）。
+
+### 10.8 开源与部署注意
+
+- 本项目已开源，默认本地模式开箱即用；公共服务器激活/多租户为可选增强。
+- 部署（后端仍在本机运行 + frp 穿透公网，见第 7 节）：新增 `keycode.db` 自动建表；全功能激活目录云端固定 `/home/codefile/cashtabledb`（需创建目录并保证后端进程可写）。
+- 激活码由管理员运行 `python -m scripts.gen_keycode <数量>` 生成后线下发放。
+- LLM Key：本地模式由 App 端维护（加密存储）；自定义/全功能模式由服务器 `.env` 配置，App 端在非本地模式不可编辑 Key 字段。

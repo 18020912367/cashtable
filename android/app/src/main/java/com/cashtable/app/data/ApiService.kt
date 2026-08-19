@@ -1,6 +1,7 @@
 package com.cashtable.app.data
 
 import okhttp3.MultipartBody
+import okhttp3.RequestBody
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
@@ -16,6 +17,12 @@ interface ApiService {
 
     @GET("api/users/")
     suspend fun users(): List<UserDto>
+
+    @POST("api/users/")
+    suspend fun createUser(@Body body: UserCreateRequest): UserDto
+
+    @DELETE("api/users/{id}/")
+    suspend fun deleteUser(@Path("id") id: Int)
 
     @GET("api/categories/")
     suspend fun categories(@Query("kind") kind: String? = null): List<CategoryDto>
@@ -52,4 +59,26 @@ interface ApiService {
     @Multipart
     @POST("api/ai/extract/")
     suspend fun extractTransaction(@Part file: MultipartBody.Part): VisionExtractDto
+
+    // ---------- 全功能模式激活 ----------
+
+    /** 激活码校验（未激活可激活 / 已激活同设备 / 已绑定其他设备）。 */
+    @POST("api/activate/check")
+    suspend fun checkActivation(@Body body: ActivationCheckRequest): ActivationCheckResponse
+
+    /** 激活状态查询。 */
+    @GET("api/activate/status")
+    suspend fun activationStatus(
+        @Query("code") code: String,
+        @Query("device_mac") deviceMac: String = "",
+    ): ActivationCheckResponse
+
+    /** 首次激活：上传本地 sqlite → 云端保存为 {激活码}_cashtable.db（开 WAL）。 */
+    @Multipart
+    @POST("api/activate/upload")
+    suspend fun uploadActivationDb(
+        @Part("code") code: RequestBody,
+        @Part("device_mac") deviceMac: RequestBody,
+        @Part file: MultipartBody.Part,
+    ): ActivationUploadResponse
 }

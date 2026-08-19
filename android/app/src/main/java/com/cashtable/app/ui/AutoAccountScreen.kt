@@ -75,7 +75,6 @@ import androidx.core.content.ContextCompat
 import com.cashtable.app.data.CategoryDto
 import com.cashtable.app.ui.components.categoryImage
 import com.cashtable.app.ui.theme.BgGray
-import com.cashtable.app.ui.theme.PrimaryBlue
 import com.cashtable.app.ui.theme.TextGray
 import com.cashtable.app.util.Formatters
 import kotlinx.coroutines.Dispatchers

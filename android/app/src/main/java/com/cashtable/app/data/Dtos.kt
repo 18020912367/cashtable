@@ -55,6 +55,10 @@ data class AppConfigDto(
 
 // ---------- 请求体 ----------
 
+data class UserCreateRequest(
+    val name: String,
+)
+
 data class CategoryCreateRequest(
     val name: String,
     val kind: String,
@@ -99,4 +103,25 @@ data class VisionExtractDto(
     val kind: String?,
     val amount: Double?,
     val source: String,
+)
+
+// ---------- 全功能模式激活 ----------
+
+data class ActivationCheckRequest(
+    val code: String,
+    val device_mac: String = "",
+)
+
+data class ActivationCheckResponse(
+    val ok: Boolean,
+    val message: String,
+    val is_activated: Boolean = false,
+    val activated_at: String = "",
+    val device_mac: String = "",
+)
+
+data class ActivationUploadResponse(
+    val ok: Boolean,
+    val message: String,
+    val activated_at: String = "",
 )

@@ -39,7 +39,7 @@ import com.cashtable.app.data.TransactionDto
 import com.cashtable.app.ui.components.CategoryIcon
 import com.cashtable.app.ui.components.displayCategory
 import com.cashtable.app.ui.theme.IncomeGreen
-import com.cashtable.app.ui.theme.PrimaryBlue
+import com.cashtable.app.ui.theme.PrimaryGreen
 import com.cashtable.app.ui.theme.TextGray
 import com.cashtable.app.util.Formatters
 import java.time.YearMonth
@@ -106,7 +106,7 @@ fun StatsScreen(vm: AppViewModel) {
                 }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("支出", style = MaterialTheme.typography.bodySmall, color = TextGray)
-                    Text(Formatters.money(expense), style = MaterialTheme.typography.titleMedium, color = PrimaryBlue)
+                    Text(Formatters.money(expense), style = MaterialTheme.typography.titleMedium, color = PrimaryGreen)
                 }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("结余", style = MaterialTheme.typography.bodySmall, color = TextGray)
@@ -189,7 +189,7 @@ private fun RankRow(name: String, total: Double, ratio: Float, iconCat: Category
                 modifier = Modifier
                     .fillMaxWidth(ratio.coerceIn(0.05f, 1f))
                     .height(6.dp)
-                    .background(PrimaryBlue.copy(alpha = 0.7f), RoundedCornerShape(3.dp)),
+                    .background(PrimaryGreen.copy(alpha = 0.7f), RoundedCornerShape(3.dp)),
             )
         }
         Spacer(Modifier.height(10.dp))

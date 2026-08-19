@@ -17,5 +17,12 @@ def list_users(db: Session = Depends(get_db)):
 
 @router.post('/users/', response_model=UserOut, status_code=201)
 def create_user(data: UserCreate, db: Session = Depends(get_db)):
-    """新增记账人（一般只在 sqlite 手动写，接口备用）。"""
+    """新增记账人。"""
     return user_service.create_user(db, data)
+
+
+@router.delete('/users/{user_id}/', status_code=204)
+def delete_user(user_id: int, db: Session = Depends(get_db)):
+    """删除记账人（名下账单 created_by 置空）。"""
+    user_service.delete_user(db, user_id)
+    return None

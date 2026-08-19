@@ -72,7 +72,7 @@ import com.cashtable.app.data.CategoryDto
 import com.cashtable.app.data.VisionExtractDto
 import com.cashtable.app.ui.components.categoryImage
 import com.cashtable.app.ui.theme.BgGray
-import com.cashtable.app.ui.theme.PrimaryBlue
+import com.cashtable.app.ui.theme.PrimaryGreen
 import com.cashtable.app.ui.theme.TextGray
 import com.cashtable.app.util.Formatters
 import kotlinx.coroutines.launch
@@ -577,7 +577,7 @@ internal fun RowScope.OcrCategoryCell(
             modifier = Modifier
                 .size(52.dp)
                 .clip(RoundedCornerShape(14.dp))
-                .background(if (selected) PrimaryBlue else BgGray),
+                .background(if (selected) PrimaryGreen else BgGray),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
@@ -591,7 +591,7 @@ internal fun RowScope.OcrCategoryCell(
         Text(
             text = name,
             fontSize = 12.sp,
-            color = if (selected) PrimaryBlue else TextGray,
+            color = if (selected) PrimaryGreen else TextGray,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )

@@ -67,7 +67,7 @@ import com.cashtable.app.data.CategoryDto
 import com.cashtable.app.ui.components.categoryImage
 import com.cashtable.app.ui.components.iconChoices
 import com.cashtable.app.ui.theme.BgGray
-import com.cashtable.app.ui.theme.PrimaryBlue
+import com.cashtable.app.ui.theme.PrimaryGreen
 import com.cashtable.app.ui.theme.TextGray
 import com.cashtable.app.util.Formatters
 import kotlinx.coroutines.launch
@@ -564,7 +564,7 @@ fun AddScreen(
                                         .padding(3.dp)
                                         .height(46.dp)
                                         .clip(RoundedCornerShape(10.dp))
-                                        .background(if (addIconKey == key) PrimaryBlue else BgGray)
+                                        .background(if (addIconKey == key) PrimaryGreen else BgGray)
                                         .combinedClickable(
                                             interactionSource = remember { MutableInteractionSource() },
                                             indication = null,
@@ -720,7 +720,7 @@ private fun RowScope.CategoryCell(
                         scaleY = scaleAnim
                         alpha = alphaAnim
                     }
-                    .background(PrimaryBlue, RoundedCornerShape(14.dp)),
+                    .background(PrimaryGreen, RoundedCornerShape(14.dp)),
             )
             Icon(
                 imageVector = icon,
@@ -733,7 +733,7 @@ private fun RowScope.CategoryCell(
         Text(
             text = name,
             fontSize = 12.sp,
-            color = if (selected) PrimaryBlue else TextGray,
+            color = if (selected) PrimaryGreen else TextGray,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )

@@ -5,18 +5,18 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-// 设计稿配色（钱迹风格）：主色蓝、收入绿、支出深灰、浅灰背景
-val PrimaryBlue = Color(0xFF2E6FF2)
+// 设计稿配色（邮政绿主题）：主色邮政绿、收入绿、支出深灰、浅灰背景
+val PrimaryGreen = Color(0xFF00965E)
 val IncomeGreen = Color(0xFF00B578)
 val ExpenseGray = Color(0xFF333333)
 val BgGray = Color(0xFFF5F6F8)
 val TextGray = Color(0xFF999999)
 
 private val LightColors = lightColorScheme(
-    primary = PrimaryBlue,
+    primary = PrimaryGreen,
     onPrimary = Color.White,
-    primaryContainer = Color(0xFFDCE7FE),
-    onPrimaryContainer = Color(0xFF123D8C),
+    primaryContainer = Color(0xFFD5EFE2),
+    onPrimaryContainer = Color(0xFF0A3D27),
     secondary = IncomeGreen,
     background = Color.White,
     surface = Color.White,

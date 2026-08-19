@@ -4,18 +4,10 @@ serverPort = 7000
 auth.method = "token"
 auth.token = "c63e82287b214e77812cba4830706ee0"
 
-# 云端 8000 → 本地后端 API
+# 云端 8010 → 本地后端 API（备用通道；公网 8000 已由云端后端 systemd 直出）
 [[proxies]]
 name = "cashtable-api"
 type = "tcp"
 localIP = "127.0.0.1"
 localPort = 8000
-remotePort = 8000
-
-# 云端 8001 → 本地 APK 静态服务
-[[proxies]]
-name = "cashtable-apk"
-type = "tcp"
-localIP = "127.0.0.1"
-localPort = 8001
-remotePort = 8001
+remotePort = 8010
