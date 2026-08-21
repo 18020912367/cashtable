@@ -67,11 +67,13 @@ def get_code(code: str) -> ActivationCode | None:
 
 
 def check_code_active(code: str, device_mac: str = '') -> bool:
-    """激活码有效且已激活返回 True；已绑定设备的还需设备标识一致。"""
+    """激活码有效且已激活返回 True。
+
+    激活码允许重复使用（多设备共用同一数据库），不校验设备标识；
+    device_mac 参数保留仅为兼容旧调用方。
+    """
     row = get_code(code)
     if row is None or row.is_activated != 1:
-        return False
-    if row.device_mac and device_mac and row.device_mac != device_mac:
         return False
     return True
 

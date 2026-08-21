@@ -69,12 +69,15 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         serverUrl = prefs.serverUrl
     }
 
-    /** 切换模式后刷新数据：重新拉取记账人与分类；当前记账人失效则清空引导重选。 */
+    /** 切换模式后刷新数据：重新拉取记账人与分类；当前记账人自动刷新为目标数据库的第一个记账人。 */
     suspend fun refreshForMode() {
         loadUsers()
         loadCategories()
-        val stillExists = users.any { it.id == currentUser?.id }
-        if (!stillExists) {
+        // 从本地模式切换至其他模式（或反向）时：自动刷新为对应数据库的第一个记账人
+        val first = users.firstOrNull()
+        if (first != null) {
+            updateCurrentUser(first)
+        } else {
             currentUser = null
             prefs.currentUserId = null
             prefs.currentUserName = ""
@@ -255,6 +258,17 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             appConfig = repository.loadAppConfig()
         } catch (_: Exception) {
             // 拉取失败不打扰，下次再试
+        }
+    }
+
+    /** 导出区间内账单 CSV（关联记账人名与分类名）；失败返回 null 并置 serverError。 */
+    suspend fun exportTransactions(start: String, end: String): String? {
+        return try {
+            serverError = null
+            repository.exportTransactions(start, end)
+        } catch (e: Exception) {
+            serverError = e.message ?: "导出失败"
+            null
         }
     }
 

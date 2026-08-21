@@ -139,6 +139,19 @@ class Repository(private val prefs: Prefs, context: Context) {
     suspend fun loadMonthlyStats(year: String): List<MonthlyStatDto> =
         route({ local.loadMonthlyStats(year) }, { api.monthlyStat(year) })
 
+    /** 导出区间内账单 CSV（关联记账人名与分类名），按当前模式路由。 */
+    suspend fun exportTransactions(start: String, end: String): String = route(
+        { local.exportTransactions(start, end) },
+        {
+            val resp = api.exportTransactions(start, end)
+            if (resp.isSuccessful) {
+                resp.body()?.string() ?: ""
+            } else {
+                throw RuntimeException("导出失败（HTTP ${resp.code()}）")
+            }
+        },
+    )
+
     // ---------- App 配置（更新检查固定走云端公共服务器，与运行模式无关） ----------
 
     suspend fun loadAppConfig(): AppConfigDto = publicApi.appConfig()

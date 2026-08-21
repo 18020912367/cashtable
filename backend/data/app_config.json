@@ -1,10 +1,10 @@
 {
   "app_name": "截记",
-  "latest_version_code": 22,
-  "latest_version_name": "0.8.3",
+  "latest_version_code": 23,
+  "latest_version_name": "0.8.4",
   "apk_url": "http://124.223.74.139:8000/apk/app-debug.apk",
-  "changelog": "更新检查优化：始终连接云端检查新版本",
+  "changelog": "切换模式自动刷新记账人；激活码支持重复使用（多设备共用账本）；统计页新增账单导出（日期区间+记账人名+分类名）",
   "default_server_url": "http://124.223.74.139:8000/",
-  "apk_md5": "cd11d34df132252c7cc6f831733091c7",
-  "apk_size": 34101291
+  "apk_md5": "25c6d555b9e330a7689967bfd1ce57fb",
+  "apk_size": 34134059
 }

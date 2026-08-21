@@ -49,18 +49,16 @@ class CheckResponse(BaseModel):
 
 @router.post('/check', response_model=CheckResponse)
 def check_activation(data: CheckRequest):
-    """激活码校验：未激活返回可激活；已激活且设备一致返回已激活；绑定他人设备返回错误。"""
+    """激活码校验：未激活返回可激活；已激活返回已激活（激活码可重复使用，多设备共用同一数据库）。"""
     code = data.code.strip()
     row = get_code(code)
     if row is None:
         return CheckResponse(ok=False, message='激活码不存在')
     if row.is_activated != 1:
         return CheckResponse(ok=True, message='激活码可用，可进行激活', is_activated=False)
-    if row.device_mac and data.device_mac and row.device_mac != data.device_mac:
-        return CheckResponse(ok=False, message='该激活码已绑定其他设备', is_activated=True)
     return CheckResponse(
-        ok=True, message='该设备已激活', is_activated=True,
-        activated_at=row.activated_at, device_mac=row.device_mac,
+        ok=True, message='该激活码已激活，可直接使用（多设备共用同一数据库）',
+        is_activated=True, activated_at=row.activated_at, device_mac=row.device_mac,
     )
 
 
@@ -73,10 +71,8 @@ def activation_status(code: str, device_mac: str = ''):
         return CheckResponse(ok=False, message='激活码不存在')
     if row.is_activated != 1:
         return CheckResponse(ok=True, message='未激活', is_activated=False)
-    if row.device_mac and device_mac and row.device_mac != device_mac:
-        return CheckResponse(ok=False, message='该激活码已绑定其他设备', is_activated=True)
     return CheckResponse(
-        ok=True, message='已激活', is_activated=True,
+        ok=True, message='已激活（多设备共用同一数据库）', is_activated=True,
         activated_at=row.activated_at, device_mac=row.device_mac,
     )
 
@@ -91,15 +87,25 @@ async def upload_activation_db(
 ):
     """首次激活：校验激活码 → 保存 App 的 sqlite 为 {激活码}_cashtable.db → 开 WAL → 标记已激活。
 
-    幂等：同一设备重复激活会覆盖已有库（重新初始化数据），便于重装后恢复。
+    - 首次激活：上传本地库初始化租户数据库；
+    - 重复使用（已激活）：不覆盖已有数据库，直接连接该激活码已激活的数据库，
+      记录新设备标识（多设备共用同一数据库）。
     """
     code = code.strip()
     with _activation_lock:
         row = get_code(code)
         if row is None:
             raise HTTPException(status_code=403, detail='激活码不存在')
-        if row.is_activated == 1 and row.device_mac and row.device_mac != device_mac:
-            raise HTTPException(status_code=403, detail='该激活码已绑定其他设备')
+
+        if row.is_activated == 1:
+            # 重复使用：直接连接已有数据库，不覆盖原数据
+            if row.device_mac != device_mac:
+                activate_code(code, device_mac)
+            return {
+                'ok': True,
+                'message': '激活码已激活，已连接该激活码的数据库（未覆盖原数据）',
+                'activated_at': row.activated_at,
+            }
 
         content = await file.read()
         if not content:

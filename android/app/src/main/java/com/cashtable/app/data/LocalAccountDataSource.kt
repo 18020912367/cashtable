@@ -197,6 +197,33 @@ class LocalAccountDataSource(context: Context) {
         }
     }
 
+    /** 导出区间内账单 CSV（关联记账人名与分类名），与后端 /api/statistics/export/ 表头一致。 */
+    fun exportTransactions(start: String, end: String): String = dbHelper.readableDatabase.use { db ->
+        db.rawQuery(
+            "SELECT t.happened_at, t.amount, c.name, u.name, t.content, t.source, t.id, t.created_at " +
+                "FROM transactions t " +
+                "LEFT JOIN categories c ON c.id = t.category_id " +
+                "LEFT JOIN users u ON u.id = t.created_by " +
+                "WHERE t.happened_at >= ? AND t.happened_at <= ? " +
+                "ORDER BY t.happened_at ASC",
+            arrayOf("$start 00:00:00", "$end 23:59:59"),
+        ).use { c ->
+            buildString {
+                append('\uFEFF') // UTF-8 BOM：Excel 打开不乱码
+                appendLine("日期,类型,金额,分类,记账人,内容,来源,记录ID,创建时间")
+                while (c.moveToNext()) {
+                    val amount = c.getDouble(1)
+                    append(
+                        "${csv(c.getString(0))},${if (amount > 0) "收入" else "支出"}," +
+                            "${"%.2f".format(amount)},${csv(c.getString(2) ?: "")}," +
+                            "${csv(c.getString(3) ?: "")},${csv(c.getString(4) ?: "")}," +
+                            "${csv(c.getString(5) ?: "")},${c.getLong(6)},${csv(c.getString(7) ?: "")}\n"
+                    )
+                }
+            }
+        }
+    }
+
     // ---------- 本地库文件（全功能模式激活上传用） ----------
 
     /** 本地库文件路径（未关闭连接时需先 close）。 */
@@ -234,6 +261,14 @@ class LocalAccountDataSource(context: Context) {
             }
         }
     }
+
+    /** CSV 字段转义：含逗号/引号/换行时用引号包裹，内部引号翻倍。 */
+    private fun csv(field: String): String =
+        if (field.contains(',') || field.contains('"') || field.contains('\n') || field.contains('\r')) {
+            "\"" + field.replace("\"", "\"\"") + "\""
+        } else {
+            field
+        }
 
     private fun Cursor.getColumnValue(index: Int): Any? =
         if (isNull(index)) null else when {

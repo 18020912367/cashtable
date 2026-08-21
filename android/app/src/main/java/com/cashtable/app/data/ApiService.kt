@@ -2,6 +2,8 @@ package com.cashtable.app.data
 
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
+import okhttp3.ResponseBody
+import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
@@ -51,6 +53,13 @@ interface ApiService {
 
     @GET("api/statistics/monthly/")
     suspend fun monthlyStat(@Query("year") year: String): List<MonthlyStatDto>
+
+    /** 导出区间内账单 CSV（关联记账人名与分类名）。 */
+    @GET("api/statistics/export/")
+    suspend fun exportTransactions(
+        @Query("start") start: String,
+        @Query("end") end: String,
+    ): Response<ResponseBody>
 
     @GET("api/app/config")
     suspend fun appConfig(): AppConfigDto

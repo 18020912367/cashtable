@@ -484,17 +484,18 @@ App 默认**本地模式**，可在「我的 → 切换模式」随时切换。
 | device_mac | 激活设备标识（App 端取 ANDROID_ID，Android 10+ 无法可靠获取真实 MAC） |
 | is_activated | 0/1 是否已激活 |
 
-- 激活码格式 `JI-XXXX-XXXX-XXXX`；一个激活码首次激活即绑定设备，重复使用会报「已绑定其他设备」。
+- 激活码格式 `JI-XXXX-XXXX-XXXX`；**激活码支持重复使用**（v0.8.4 起）：同一激活码可在多台设备激活，重复激活不覆盖已有租户库，直接连接该激活码已激活归属的数据库（多设备共用同一账本）；`check_code_active()` 不再校验设备标识。
 
 ### 10.3 全功能模式激活流程
 
 ```
 「我的 → 切换模式 → 全功能模式」（未激活则先进入激活页）
   ├─ 输入激活码 → POST /api/activate/upload（multipart：code + device_mac + 本地 cashtable.db）
-  │    ① 服务端校验激活码（不存在 / 已绑定其他设备 → 403）
-  │    ② 保存 App 的 sqlite 为 ACTIVATED_DB_DIR/{激活码}_cashtable.db
-  │    ③ 开启该库 SQLite WAL 模式（并发读写）
-  │    ④ 标记激活（记录激活时间与设备）
+  │    ① 服务端校验激活码（不存在 → 403）
+  │    ② 首次激活：保存 App 的 sqlite 为 ACTIVATED_DB_DIR/{激活码}_cashtable.db
+  │       并开启该库 SQLite WAL 模式（并发读写）；标记激活（记录激活时间与设备）
+  │    ③ 重复使用（v0.8.4 起，is_activated=1）：不覆盖已有数据库，
+  │       直接返回「已连接该激活码的数据库」，设备标识变化时仅更新 device_mac
   └─ 激活成功后 App 切换到全功能模式，后续所有数据/AI 请求携带请求头：
       X-Activate-Code: {激活码}  X-Device-Mac: {ANDROID_ID}
       由 deps.get_db 校验激活状态后路由到对应租户库（按激活码缓存 engine）。
@@ -502,7 +503,7 @@ App 默认**本地模式**，可在「我的 → 切换模式」随时切换。
 
 - 激活接口为 `async`（FastAPI async + 同激活码进程内锁），可支撑并发激活/访问。
 - 云端（Linux）`ACTIVATED_DB_DIR` 固定 `/home/codefile/cashtabledb`；本地 Windows 开发用 `backend/data/activated`。
-- 幂等：同一设备重复激活会覆盖已有租户库（重装后恢复数据用）。
+- 幂等：首次激活会创建/初始化租户库；重复激活（已激活）不覆盖原数据，仅更新设备标识。
 
 ### 10.4 自定义模式与标准模板
 
@@ -534,3 +535,19 @@ App 默认**本地模式**，可在「我的 → 切换模式」随时切换。
 - 部署（后端仍在本机运行 + frp 穿透公网，见第 7 节）：新增 `keycode.db` 自动建表；全功能激活目录云端固定 `/home/codefile/cashtabledb`（需创建目录并保证后端进程可写）。
 - 激活码由管理员运行 `python -m scripts.gen_keycode <数量>` 生成后线下发放。
 - LLM Key：本地模式由 App 端维护（加密存储）；自定义/全功能模式由服务器 `.env` 配置，App 端在非本地模式不可编辑 Key 字段。
+
+### 10.9 v0.8.4：切模式刷新记账人 / 激活码重复使用 / 统计导出
+
+**切换模式自动刷新记账人**
+- `Repository.refreshForMode()`（切换本地/自定义/全功能模式后调用）：先加载目标库 users/categories，再自动将当前「记账人」设为对应数据库**第一个 user**（无 user 则清空）。本地→云端、云端→本地均生效。
+
+**激活码重复使用**
+- 后端 `keycode.py: check_code_active()` 不再校验设备标识（多设备共用同一数据库）；`activate.py` 三个接口（check / status / upload）均返回「已激活，可直接使用」语义，重复 upload 不覆盖已有租户库。
+
+**统计导出（CSV）**
+- 后端新增 `GET /api/statistics/export/?start=YYYY-MM-DD&end=YYYY-MM-DD`：
+  - 校验日期格式与 start≤end（否则 400）；
+  - `transactions` LEFT JOIN `users`（created_by）与 `categories`（category_id）取 **user.name / category.name**；
+  - 按 happened_at 升序，输出 UTF-8 BOM CSV（Excel 兼容），表头：`日期,类型,金额,分类,记账人,内容,来源,记录ID,创建时间`。
+- Android 统计页右上角新增导出图标 → 日期区间对话框（DatePicker，默认上月初~今天）→ 按模式路由（本地 sqlite LEFT JOIN 同逻辑 / 云端 API）→ 写入 `filesDir/export/transactions_起_止.csv` → FileProvider + `ACTION_SEND` 分享/保存。
+- 注意（SQLite 坑）：`DateTime` 列过滤不能用字符串参数，需先 `datetime.combine(strptime(...), time.min/max)` 转 datetime 再比较。

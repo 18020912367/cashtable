@@ -147,6 +147,16 @@ a:hover { opacity: 0.85; }
 .mode-card h3 { font-size: 17px; color: var(--green-dark); }
 .mode-card p { font-size: 13.5px; color: var(--text-gray); margin-top: 8px; }
 .mode-card ul { margin: 10px 0 0 18px; font-size: 13px; color: var(--text-gray); }
+.mode-note {
+  margin-top: 18px;
+  text-align: center;
+  font-size: 13.5px;
+  color: var(--text-gray);
+  background: #fff;
+  border: 1px dashed var(--green);
+  border-radius: 10px;
+  padding: 10px 16px;
+}
 
 /* ---------- 使用说明 ---------- */
 .steps { counter-reset: step; max-width: 760px; margin: 0 auto; }
@@ -224,6 +234,7 @@ a:hover { opacity: 0.85; }
 }
 .footer a { color: #a7e3c3; }
 .footer .links { margin-bottom: 8px; display: flex; gap: 22px; justify-content: center; }
+.footer .contact { margin-top: 8px; color: #a7e3c3; font-size: 12.5px; }
 
 @media (max-width: 640px) {
   .hero { padding: 60px 0 56px; }

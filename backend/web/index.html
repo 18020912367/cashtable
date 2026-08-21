@@ -61,17 +61,10 @@
         </div>
         <div class="card">
           <div class="icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#00965e" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-          </div>
-          <h3>悬浮球记账</h3>
-          <p>任意界面点击悬浮球，自动截屏并识别，无需切换 App 即可完成记账。</p>
-        </div>
-        <div class="card">
-          <div class="icon">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#00965e" stroke-width="2"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4"/><circle cx="12" cy="12" r="3"/></svg>
           </div>
-          <h3>自动记账</h3>
-          <p>授权后自动读取最新相册截图并识别入账，全程免操作，适合高频消费场景。</p>
+          <h3>自动记账（悬浮球入口）</h3>
+          <p>系统截屏后点击悬浮球，App 自动读取相册最新截图识别入账，保存后自动删除截图并返回原界面，无需切换 App。</p>
         </div>
         <div class="card">
           <div class="icon">
@@ -91,8 +84,15 @@
           <div class="icon">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#00965e" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-6"/></svg>
           </div>
-          <h3>收支统计</h3>
-          <p>按月、按分类查看收支统计，消费结构一目了然。</p>
+          <h3>收支统计与导出</h3>
+          <p>按月、按分类查看收支统计；选择日期区间一键导出账单 CSV（含记账人与分类名），分享或保存。</p>
+        </div>
+        <div class="card">
+          <div class="icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#00965e" stroke-width="2"><path d="M16 11V7a4 4 0 0 0-8 0v4"/><rect x="3" y="11" width="18" height="10" rx="2"/></svg>
+          </div>
+          <h3>激活码多设备共享</h3>
+          <p>同一激活码可在多台设备重复激活，直接连接该激活码归属的云端账本，数据不会覆盖。</p>
         </div>
         <div class="card">
           <div class="icon">
@@ -145,12 +145,13 @@
           <h3>公共服务器</h3>
           <p>输入激活码激活公共服务器，使用全部功能，开箱即用。</p>
           <ul>
-            <li>激活码一键激活</li>
+            <li>激活码一键激活，支持多设备重复使用</li>
             <li>数据自动上传云端并每日备份</li>
             <li>AI 识别走公共服务器</li>
           </ul>
         </div>
       </div>
+      <p class="mode-note">切换模式后，当前「记账人」会自动刷新为对应数据库中的第一个记账人，无需手动重新选择。</p>
     </div>
   </section>
 
@@ -185,6 +186,41 @@
         </div>
       </div>
       <p class="steps-link">完整操作说明见 <a href="/docs/用户操作说明.md" target="_blank">用户操作说明</a>（可下载查阅）。</p>
+
+      <div class="section-head" style="margin-top:56px">
+        <h2 style="font-size:24px">如何获取大模型 API Key（GLM 智谱）</h2>
+        <p>本地模式使用截图 AI 识别前，需先配置自己的大模型 Key</p>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <div class="num"></div>
+          <div>
+            <h4>访问智谱开放平台</h4>
+            <p>浏览器打开 <a href="https://open.bigmodel.cn/" target="_blank" rel="noopener">https://open.bigmodel.cn/</a>，注册并登录账号（首次使用需完成实名认证）。</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="num"></div>
+          <div>
+            <h4>创建 API Key</h4>
+            <p>左侧菜单进入「API Keys」，点击「创建新的 API Key」，复制以 <code>sk-</code> 开头的密钥。</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="num"></div>
+          <div>
+            <h4>填入 App 并验证</h4>
+            <p>打开 App「我的 → LLM 设置」，粘贴 API Key（可修改 Base URL 与模型），点击「测试连接」确认连通。</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="num"></div>
+          <div>
+            <h4>开始使用</h4>
+            <p>默认截图识别模型为 <code>glm-4v-flash</code>（视觉大模型），识别失败时系统自动切换备用模型。全功能模式激活后无需自备 Key。</p>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -227,12 +263,20 @@
       </div>
       <div class="faq">
         <details>
+          <summary>截图识别需要 API Key 吗？去哪获取？</summary>
+          <p>本地模式需要自备大模型 Key：访问智谱开放平台 <a href="https://open.bigmodel.cn/" target="_blank" rel="noopener">open.bigmodel.cn</a> 注册并创建 API Key，填入「我的 → LLM 设置」。具体步骤见上方<a href="#usage">如何获取大模型 API Key</a>。全功能模式激活后自动使用公共识别服务，无需自备。</p>
+        </details>
+        <details>
           <summary>截图识别不准确怎么办？</summary>
           <p>确保已正确填写大模型 API Key 并通过「测试连接」；截图尽量清晰、无遮挡，金额与商户信息完整。</p>
         </details>
         <details>
           <summary>如何激活全功能模式？</summary>
           <p>「我的 → 切换模式」选择全功能模式，输入 12 位激活码并「校验并激活」，首次激活会自动上传本地数据到云端。</p>
+        </details>
+        <details>
+          <summary>同一激活码可以多个设备用吗？</summary>
+          <p>可以。激活码支持重复使用：在多台设备输入同一激活码，会直接连接到该激活码已激活归属的公共数据库（不会覆盖已有数据），适合多设备共享同一账本。</p>
         </details>
         <details>
           <summary>检查更新提示无新版本？</summary>
@@ -259,7 +303,10 @@
         <a href="#usage">使用说明</a>
         <a href="#download">下载</a>
       </div>
-      <div>截记 · 截图即记账 · 如有问题请联系管理员</div>
+      <div>截记 · 截图即记账</div>
+      <div class="contact">
+        如有问题请联系管理员：QQ 928365341 · 邮箱 928365341@qq.com · 微信 ferocioustigerpink
+      </div>
     </div>
   </footer>
 
@@ -279,9 +326,9 @@
           d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
       })
       .catch(() => {
-        document.getElementById('hero-version').textContent = '0.8.3';
-        document.getElementById('dl-version').textContent = '0.8.3';
-        document.getElementById('dl-changelog').textContent = '更新检查优化：始终连接云端检查新版本';
+        document.getElementById('hero-version').textContent = '0.8.4';
+        document.getElementById('dl-version').textContent = '0.8.4';
+        document.getElementById('dl-changelog').textContent = '切换模式自动刷新记账人；激活码支持重复使用；统计页新增账单导出';
       });
   </script>
 </body>
