@@ -41,6 +41,12 @@
                 android:value="floating_ball_accounting_entry" />
         </service>
 
+        <!-- 悬浮球记账·自动模式：MediaProjection 截屏前台服务（Android 14+ 必须先 startForeground 再取投影） -->
+        <service
+            android:name=".p4.ScreenCaptureService"
+            android:exported="false"
+            android:foregroundServiceType="mediaProjection" />
+
         <!-- App 内更新：向系统安装器暴露下载的 APK -->
         <provider
             android:name="androidx.core.content.FileProvider"

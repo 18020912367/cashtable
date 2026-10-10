@@ -122,14 +122,32 @@ class FloatingBallService : Service() {
         }
     }
 
-    // ---------- 点击悬浮球：跳转自动记账页 ----------
+    // ---------- 点击悬浮球：用户确认判断层（手动 / 自动两条并联入口） ----------
 
     private fun openAutoAccount() {
         val intent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
             putExtra(EXTRA_AUTO_ACCOUNTING, true)
         }
-        startActivity(intent)
+        when (FloatingModeStore.get(this)) {
+            FloatingModeStore.AUTO -> {
+                if (ScreenCaptureService.isReady) {
+                    // 自动模式：此刻用户仍在原页面，立即截屏后携带私有截图路径进入
+                    val path = ScreenCaptureService.captureNow(this)
+                    if (path != null) {
+                        intent.putExtra(EXTRA_CAPTURE_PATH, path)
+                        startActivity(intent)
+                        return
+                    }
+                    toast("自动截屏失败，请手动截屏后点击悬浮球")
+                } else {
+                    toast("自动截屏授权已失效，请手动截屏，或到设置重新开启悬浮球")
+                }
+                // 自动模式降级：仍走手动流程（用户已系统截屏的场景可正常识别）
+                startActivity(intent)
+            }
+            else -> startActivity(intent) // 手动模式：原流程，读相册最新截图
+        }
     }
 
     @Suppress("DEPRECATION")
@@ -165,6 +183,9 @@ class FloatingBallService : Service() {
     companion object {
         /** 悬浮球点击跳转自动记账页的 Intent 标志。 */
         const val EXTRA_AUTO_ACCOUNTING = "auto_accounting"
+
+        /** 自动模式：悬浮球自动截屏后跳转自动记账页的私有截图路径 Intent 标志。 */
+        const val EXTRA_CAPTURE_PATH = "capture_path"
         private const val ACTION_STOP = "com.cashtable.app.p4.STOP"
         private const val CHANNEL_ID = "floating_ball"
         private const val NOTIFY_ID = 1001

@@ -80,19 +80,22 @@ import com.cashtable.app.util.Formatters
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
 
 /**
- * 自动记账（悬浮球入口，0.7.0 技术路线变更）：
- * 用户先用系统截屏（完全合规），再点击悬浮球跳入本页；
- * 页面自动读取相册中最新（第一张）图片 → 上传识别 → 预录表单（逻辑同截图记账页）。
- * 保存成功后：删除对应截屏 → 关闭 App 窗口，回到点击悬浮球前的界面。
+ * 自动记账（悬浮球入口，0.7.0 技术路线变更；悬浮球模式新增自动截屏）：
+ * - 手动模式（capturePath == null）：用户先用系统截屏，再点击悬浮球跳入本页；
+ *   页面自动读取相册中最新（第一张）图片 → 上传识别 → 预录表单（逻辑同截图记账页）。
+ * - 自动模式（capturePath 非空）：悬浮球点击瞬间经 MediaProjection 自动截屏，
+ *   携带应用私有截图路径进入本页直接识别，无需相册权限。
+ * 保存成功后：删除对应截图 → 关闭 App 窗口，回到点击悬浮球前的界面。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AutoAccountScreen(vm: AppViewModel, onBack: () -> Unit) {
+fun AutoAccountScreen(vm: AppViewModel, capturePath: String? = null, onBack: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -103,6 +106,8 @@ fun AutoAccountScreen(vm: AppViewModel, onBack: () -> Unit) {
     var screenshotUri by remember { mutableStateOf<Uri?>(null) }
     // 是否为自动读取的相册最新截图（保存后自动删除）；手动选图不删除
     var autoScreenshot by remember { mutableStateOf(true) }
+    // 自动模式（MediaProjection）截取的应用私有截图：保存后直接删文件，无需系统确认
+    var captureFile by remember { mutableStateOf<File?>(null) }
 
     // 识别结果表单（与截图记账页一致）
     var kind by remember { mutableStateOf("expense") }
@@ -183,6 +188,19 @@ fun AutoAccountScreen(vm: AppViewModel, onBack: () -> Unit) {
     LaunchedEffect(Unit) {
         // 先确保分类已加载，保证识别结果能正确匹配分类
         if (vm.categories.isEmpty()) vm.loadCategories()
+        // 自动模式：悬浮球已自动截屏（应用私有文件），无需相册权限，直接识别
+        if (capturePath != null) {
+            val f = File(capturePath)
+            if (f.exists()) {
+                captureFile = f
+                autoScreenshot = true
+                recognizeUri(Uri.fromFile(f))
+            } else {
+                autoScreenshot = false
+                error = "自动截屏文件不存在，请重试"
+            }
+            return@LaunchedEffect
+        }
         val permission = when {
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU ->
                 android.Manifest.permission.READ_MEDIA_IMAGES
@@ -202,6 +220,12 @@ fun AutoAccountScreen(vm: AppViewModel, onBack: () -> Unit) {
     /** 保存成功：自动读取的截图删除（系统合规方式），随后将 App 退到后台，回到点击悬浮球前的界面。 */
     fun deleteScreenshotAndExit() {
         val activity = context as? Activity
+        // 自动模式私有截图：直接删文件（应用私有目录，无所有权限制）
+        captureFile?.let { f ->
+            try { f.delete() } catch (_: Exception) {}
+            activity?.moveTaskToBack(true)
+            return
+        }
         if (!autoScreenshot) {
             // 手动从相册选择的图片：不自动删除
             activity?.moveTaskToBack(true)
@@ -469,10 +493,10 @@ fun AutoAccountScreen(vm: AppViewModel, onBack: () -> Unit) {
                 }
                 Spacer(Modifier.height(12.dp))
                 Text(
-                    text = if (autoScreenshot) {
-                        "保存后将自动删除相册中的对应截图，并返回原界面"
-                    } else {
-                        "保存后返回原界面（手动选择的图片不会被删除）"
+                    text = when {
+                        captureFile != null -> "保存后自动清理截屏文件，并返回原界面"
+                        autoScreenshot -> "保存后将自动删除相册中的对应截图，并返回原界面"
+                        else -> "保存后返回原界面（手动选择的图片不会被删除）"
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = TextGray,

@@ -1,8 +1,10 @@
 package com.cashtable.app.ui
 
 import android.Manifest
+import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.media.projection.MediaProjectionManager
 import android.net.Uri
 import android.os.Build
 import android.os.Handler
@@ -31,6 +33,7 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.SwapHoriz
@@ -67,6 +70,8 @@ import com.cashtable.app.BuildConfig
 import com.cashtable.app.data.ActivationCheckResponse
 import com.cashtable.app.data.AppMode
 import com.cashtable.app.p4.FloatingBallService
+import com.cashtable.app.p4.FloatingModeStore
+import com.cashtable.app.p4.ScreenCaptureService
 import com.cashtable.app.ui.theme.PrimaryGreen
 import com.cashtable.app.ui.theme.TextGray
 import kotlinx.coroutines.launch
@@ -91,10 +96,23 @@ fun MeScreen(vm: AppViewModel) {
     var pendingBallStart by rememberSaveable { mutableStateOf(false) }
     // 刚请求启动前台服务（服务启动是异步的，避免 ON_RESUME 同步时误读为 false）
     var justRequestedStart by remember { mutableStateOf(false) }
+    // 悬浮球模式：手动（系统截屏）/ 自动（MediaProjection 一次性授权自动截屏）
+    var ballMode by remember { mutableStateOf(FloatingModeStore.get(context)) }
+    // 悬浮球模式选择弹窗：开启悬浮球时先选模式，运行中也可切换
+    var showBallModeDialog by remember { mutableStateOf(false) }
+    // MediaProjection 授权结果暂存：FloatingBallService 启动时一并启动截屏服务
+    var pendingCapture by remember { mutableStateOf<Pair<Int, Intent>?>(null) }
 
     fun startFloatingBallService() {
         try {
             FloatingBallService.start(context)
+            // 自动模式：携带授权结果一并启动截屏前台服务（一次性授权后常驻可用）
+            if (FloatingModeStore.get(context) == FloatingModeStore.AUTO) {
+                pendingCapture?.let { (rc, data) ->
+                    ScreenCaptureService.start(context, rc, data)
+                    pendingCapture = null
+                }
+            }
             justRequestedStart = true
             ballRunning = true
         } catch (e: Exception) {
@@ -128,6 +146,69 @@ fun MeScreen(vm: AppViewModel) {
         ActivityResultContracts.RequestPermission()
     ) { granted ->
         continueFloatingBallStart()
+    }
+
+    /** 通知权限检查 → 悬浮窗权限检查 → 启动服务（悬浮球开启的完整链路）。 */
+    fun proceedWithNotifCheck() {
+        if (Build.VERSION.SDK_INT >= 33 &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            notifLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            continueFloatingBallStart()
+        }
+    }
+
+    // MediaProjection 授权结果：悬浮球未运行则继续开启链路；已运行（切换模式）直接就绪截屏服务
+    val captureLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { res ->
+        if (res.resultCode == Activity.RESULT_OK && res.data != null) {
+            pendingCapture = res.resultCode to res.data!!
+            if (FloatingBallService.isActive) {
+                ScreenCaptureService.start(context, res.resultCode, res.data!!)
+                Toast.makeText(context, "自动截屏已就绪，点击悬浮球自动记账", Toast.LENGTH_SHORT).show()
+            } else {
+                proceedWithNotifCheck()
+            }
+        } else {
+            // 未授权屏幕截取：自动模式不可用，回退手动模式
+            FloatingModeStore.set(context, FloatingModeStore.MANUAL)
+            ballMode = FloatingModeStore.MANUAL
+            Toast.makeText(context, "未授权屏幕截取，悬浮球使用手动模式", Toast.LENGTH_SHORT).show()
+            if (!FloatingBallService.isActive) proceedWithNotifCheck()
+        }
+    }
+
+    /** 模式选定后：自动模式先发起 MediaProjection 授权，手动模式直接走开启链路。 */
+    fun onBallModeSelected(mode: String) {
+        showBallModeDialog = false
+        if (mode == FloatingModeStore.AUTO && ScreenCaptureService.isReady) {
+            // 已就绪的自动模式：仅更新模式，无需重新授权
+            FloatingModeStore.set(context, mode)
+            ballMode = mode
+            Toast.makeText(context, "悬浮球已切换为自动模式", Toast.LENGTH_SHORT).show()
+            return
+        }
+        FloatingModeStore.set(context, mode)
+        ballMode = mode
+        if (mode == FloatingModeStore.AUTO) {
+            try {
+                val pm = context.getSystemService(MediaProjectionManager::class.java)
+                captureLauncher.launch(pm.createScreenCaptureIntent())
+            } catch (e: Exception) {
+                Toast.makeText(context, "无法发起屏幕截取授权：${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            ScreenCaptureService.stop(context)
+            pendingCapture = null
+            if (FloatingBallService.isActive) {
+                Toast.makeText(context, "悬浮球已切换为手动模式", Toast.LENGTH_SHORT).show()
+            } else {
+                proceedWithNotifCheck()
+            }
+        }
     }
 
     // P4 悬浮球：从系统「显示在其他应用上层」权限页返回后自动开启，无需再手动点一次。
@@ -165,17 +246,12 @@ fun MeScreen(vm: AppViewModel) {
     fun toggleFloatingBall() {
         if (FloatingBallService.isActive) {
             FloatingBallService.stop(context)
+            ScreenCaptureService.stop(context) // 关闭悬浮球时一并停止自动截屏
             ballRunning = false
             return
         }
-        if (Build.VERSION.SDK_INT >= 33 &&
-            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
-            != PackageManager.PERMISSION_GRANTED
-        ) {
-            notifLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-        } else {
-            continueFloatingBallStart()
-        }
+        // 开启悬浮球：先选择「手动 / 自动」模式（用户确认判断层），再走权限与启动链路
+        showBallModeDialog = true
     }
 
     Column(Modifier.fillMaxSize()) {
@@ -244,8 +320,21 @@ fun MeScreen(vm: AppViewModel) {
                 SettingRow(
                     icon = Icons.Filled.Adjust,
                     title = "悬浮球记账",
-                    value = if (ballRunning) "运行中（点击关闭）" else "未开启（点击开启）",
+                    value = if (ballRunning) {
+                        "运行中 · ${if (ballMode == FloatingModeStore.AUTO) "自动模式" else "手动模式"}（点击关闭）"
+                    } else {
+                        "未开启（点击开启）"
+                    },
                 ) { toggleFloatingBall() }
+            }
+            if (ballRunning) {
+                item {
+                    SettingRow(
+                        icon = Icons.Filled.PhotoCamera,
+                        title = "悬浮球模式",
+                        value = if (ballMode == FloatingModeStore.AUTO) "自动（授权后自动截屏）" else "手动（系统截屏）",
+                    ) { showBallModeDialog = true }
+                }
             }
             item {
                 SettingRow(icon = Icons.Filled.SystemUpdate, title = "检查更新", value = "当前 v${BuildConfig.VERSION_NAME}") {
@@ -266,6 +355,35 @@ fun MeScreen(vm: AppViewModel) {
         UserSwitchDialog(
             vm = vm,
             onDismiss = { showUserSwitch = false },
+        )
+    }
+
+    // 悬浮球记账模式选择：开启悬浮球时 / 运行中切换（手动 = 系统截屏，自动 = MediaProjection 授权截屏）
+    if (showBallModeDialog) {
+        var selectedMode by remember { mutableStateOf(ballMode) }
+        AlertDialog(
+            onDismissRequest = { showBallModeDialog = false },
+            title = { Text("悬浮球记账模式") },
+            text = {
+                Column {
+                    ModeOption(
+                        selected = selectedMode == FloatingModeStore.MANUAL,
+                        title = "手动模式",
+                        desc = "先使用系统截屏，再点击悬浮球，自动读取相册最新截图（当前方式，完全合规）",
+                        onClick = { selectedMode = FloatingModeStore.MANUAL },
+                    )
+                    ModeOption(
+                        selected = selectedMode == FloatingModeStore.AUTO,
+                        title = "自动模式",
+                        desc = "一次性授权屏幕截取后，点击悬浮球立即自动截取当前屏幕并识别（无需先手动截屏）",
+                        onClick = { selectedMode = FloatingModeStore.AUTO },
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { onBallModeSelected(selectedMode) }) { Text("确定") }
+            },
+            dismissButton = { TextButton(onClick = { showBallModeDialog = false }) { Text("取消") } },
         )
     }
 

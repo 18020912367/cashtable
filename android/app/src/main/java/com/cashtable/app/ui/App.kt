@@ -49,7 +49,7 @@ sealed class Screen {
     data object Me : Screen()
     data object Add : Screen()
     data object Ocr : Screen()
-    data class AutoAccount(val seq: Int) : Screen()
+    data class AutoAccount(val seq: Int, val capturePath: String? = null) : Screen()
     data class Edit(val tx: com.cashtable.app.data.TransactionDto) : Screen()
 }
 
@@ -57,15 +57,17 @@ sealed class Screen {
 fun CashtableApp(
     vm: AppViewModel = viewModel(),
     autoAccountingSeq: Int = 0,
+    autoCapturePath: String? = null,
 ) {
     CashtableTheme {
         var screen by remember { mutableStateOf<Screen>(Screen.Detail) }
         val currentUser = vm.currentUser
 
-        // 悬浮球点击 → 跳转「自动记账」页；seq 每次递增，保证重复进入时页面全新（重新读相册识别）
+        // 悬浮球点击 → 跳转「自动记账」页；seq 每次递增，保证重复进入时页面全新（重新读相册识别）。
+        // capturePath 非空 = 自动模式（悬浮球已自动截屏），页面直接识别该截图
         LaunchedEffect(autoAccountingSeq) {
             if (autoAccountingSeq > 0) {
-                screen = Screen.AutoAccount(autoAccountingSeq)
+                screen = Screen.AutoAccount(autoAccountingSeq, autoCapturePath)
             }
         }
 
@@ -146,9 +148,9 @@ fun CashtableApp(
             screen is Screen.AutoAccount -> {
                 // 自动记账（悬浮球入口，0.7.0）：key(seq) 保证每次点悬浮球都是全新页面
                 BackHandler { screen = Screen.Detail }
-                val seq = (screen as Screen.AutoAccount).seq
-                key(seq) {
-                    AutoAccountScreen(vm = vm, onBack = { screen = Screen.Detail })
+                val auto = screen as Screen.AutoAccount
+                key(auto.seq) {
+                    AutoAccountScreen(vm = vm, capturePath = auto.capturePath, onBack = { screen = Screen.Detail })
                 }
             }
             screen is Screen.Edit -> {

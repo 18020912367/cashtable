@@ -7,6 +7,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.cashtable.app.p4.FloatingBallService
 import com.cashtable.app.ui.CashtableApp
@@ -20,6 +21,9 @@ class MainActivity : ComponentActivity() {
      */
     private var autoAccountingSeq by mutableIntStateOf(0)
 
+    /** 自动模式（MediaProjection）截屏文件路径：悬浮球自动截屏后携带，为空走手动流程。 */
+    private var autoCapturePath by mutableStateOf<String?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // 安装完成后自动清理缓存中的更新包（覆盖安装后进程重启时执行）
@@ -27,9 +31,10 @@ class MainActivity : ComponentActivity() {
         if (intent.getBooleanExtra(FloatingBallService.EXTRA_AUTO_ACCOUNTING, false)) {
             autoAccountingSeq++
         }
+        intent.getStringExtra(FloatingBallService.EXTRA_CAPTURE_PATH)?.let { autoCapturePath = it }
         enableEdgeToEdge()
         setContent {
-            CashtableApp(autoAccountingSeq = autoAccountingSeq)
+            CashtableApp(autoAccountingSeq = autoAccountingSeq, autoCapturePath = autoCapturePath)
         }
     }
 
@@ -39,5 +44,6 @@ class MainActivity : ComponentActivity() {
         if (intent.getBooleanExtra(FloatingBallService.EXTRA_AUTO_ACCOUNTING, false)) {
             autoAccountingSeq++
         }
+        intent.getStringExtra(FloatingBallService.EXTRA_CAPTURE_PATH)?.let { autoCapturePath = it }
     }
 }
