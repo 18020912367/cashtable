@@ -1,10 +1,11 @@
 {
   "app_name": "截记",
-  "latest_version_code": 25,
-  "latest_version_name": "0.8.6",
-  "apk_url": "https://github.com/18020912367/cashtable/releases/download/v0.8.6/app-debug-v0.8.6.apk",
-  "changelog": "优化部分bug，优化云备份数据逻辑，优化apk下载路径",
+  "latest_version_code": 26,
+  "latest_version_name": "0.8.7",
+  "apk_url": "https://github.com/18020912367/cashtable/releases/download/v0.8.7/app-debug-v0.8.7.apk",
+  "apk_url_backup": "https://gitee.com/wanxianzhi/cashtable/releases/download/v0.8.7/app-debug-v0.8.7.apk",
+  "changelog": "新增APK下载Gitee备用线路：GitHub下载失败自动切换；下载完成后MD5校验防半包",
   "default_server_url": "http://124.223.74.139:8000/",
-  "apk_md5": "b36b6e49f044aa0dc3b644e011d24b94",
-  "apk_size": 34134059
+  "apk_md5": "12a47286d6a1fe0b7475c4ae0cc2f857",
+  "apk_size": 34134055
 }

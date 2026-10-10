@@ -243,6 +243,22 @@ class Repository(private val prefs: Prefs, context: Context) {
         }
     }
 
+    /** 计算文件 MD5（小写 hex），失败返回 null。 */
+    fun fileMd5(file: File): String? = try {
+        val md = java.security.MessageDigest.getInstance("MD5")
+        file.inputStream().use { input ->
+            val buf = ByteArray(8192)
+            while (true) {
+                val n = input.read(buf)
+                if (n <= 0) break
+                md.update(buf, 0, n)
+            }
+        }
+        md.digest().joinToString("") { "%02x".format(it) }
+    } catch (_: Exception) {
+        null
+    }
+
     /** 下载 APK 到目标文件（流式，进度回调 0~1），返回是否成功。 */
     suspend fun downloadApk(url: String, dest: File, onProgress: (Float) -> Unit): Boolean {
         return try {

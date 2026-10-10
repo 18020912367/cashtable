@@ -292,9 +292,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         private set
     var downloadError by mutableStateOf<String?>(null)
 
-    /** App 内下载最新 APK（进度见 downloading/downloadProgress），完成后触发系统安装。 */
+    /** App 内下载最新 APK：主线路（GitHub）失败或校验不符时自动切换备用线路（如 Gitee）。 */
     fun startUpdateDownload() {
-        val url = appConfig?.apk_url ?: return
+        val cfg = appConfig ?: return
         if (downloading) return
         val app = getApplication<Application>()
         val dest = File(app.cacheDir, "update/app-update.apk")
@@ -303,9 +303,33 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         downloading = true
         downloadProgress = 0f
         downloadError = null
+
+        // 候选线路：主链接在前，备用链接（非空时）在后
+        val urls = buildList {
+            add(cfg.apk_url)
+            if (cfg.apk_url_backup.isNotBlank()) add(cfg.apk_url_backup)
+        }
+        val expectedMd5 = cfg.apk_md5.trim().lowercase()
+
         viewModelScope.launch {
-            val ok = withContext(Dispatchers.IO) {
-                repository.downloadApk(url, dest) { p -> downloadProgress = p }
+            var ok = false
+            for ((index, url) in urls.withIndex()) {
+                if (index > 0) {
+                    // 切换备用线路：重置进度、清理半包
+                    downloadProgress = 0f
+                    dest.delete()
+                }
+                ok = withContext(Dispatchers.IO) {
+                    repository.downloadApk(url, dest) { p -> downloadProgress = p }
+                }
+                if (ok) {
+                    // 校验 MD5（服务端未提供时跳过）；不匹配视为下载失败，切下一线路
+                    val actual = withContext(Dispatchers.IO) { repository.fileMd5(dest) }
+                    if (expectedMd5.isNotEmpty() && actual != expectedMd5) {
+                        ok = false
+                    }
+                }
+                if (ok) break
             }
             downloading = false
             if (ok && dest.exists() && dest.length() > 0) {

@@ -238,6 +238,7 @@ cd android
 
 | 版本 | versionCode | 说明 |
 | --- | --- | --- |
+| [0.8.7](https://github.com/18020912367/cashtable/releases/tag/v0.8.7) | 26 | 新增APK下载Gitee备用线路：GitHub下载失败自动切换；下载完成后MD5校验防半包 |
 | [0.8.6](https://github.com/18020912367/cashtable/releases/tag/v0.8.6) | 25 | 优化部分bug，优化云备份数据逻辑，优化apk下载路径 |
 | 0.8.5 | 24 | 修复全功能模式数据隔离问题：账单按激活码隔离存储到专属数据库 |
 | [0.8.4](https://github.com/18020912367/cashtable/releases/tag/v0.8.4) | 23 | 切换模式自动刷新记账人；激活码支持重复使用（多设备共用账本）；统计页新增账单导出（日期区间+记账人名+分类名） |
