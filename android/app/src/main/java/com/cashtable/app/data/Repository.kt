@@ -31,6 +31,17 @@ class Repository(private val prefs: Prefs, context: Context) {
 
     private val client by lazy { OkHttpClient() }
 
+    init {
+        // 全功能模式：所有业务请求携带激活码头，后端 deps.get_db 据此路由到
+        // {激活码}_cashtable.db 租户库（数据按激活码隔离）；其他模式不加头。
+        ApiClient.headerProvider = {
+            if (prefs.mode == AppMode.Full && prefs.activationCode.isNotBlank()) mapOf(
+                "X-Activate-Code" to prefs.activationCode,
+                "X-Device-Mac" to prefs.deviceMac,
+            ) else emptyMap()
+        }
+    }
+
     /** 本地模式在 IO 线程执行 sqlite 操作，其余模式走云 API。 */
     private suspend fun <T> route(localOp: () -> T, apiOp: suspend () -> T): T =
         if (prefs.mode == AppMode.Local) withContext(Dispatchers.IO) { localOp() }
@@ -194,6 +205,41 @@ class Repository(private val prefs: Prefs, context: Context) {
                 deviceMac.toRequestBody("text/plain".toMediaTypeOrNull()!!),
                 part,
             )
+        }
+    }
+
+    /** 全功能模式启动同步：下载云端该激活码的租户库并覆盖本地 sqlite。
+     *  条件不满足或任一步失败均静默返回，不阻塞启动。 */
+    suspend fun syncFromCloudDb(): Boolean = withContext(Dispatchers.IO) {
+        val code = prefs.activationCode
+        if (prefs.mode != AppMode.Full || code.isBlank()) return@withContext false
+        val tmp = File.createTempFile("cloud-sync", ".db")
+        try {
+            val request = Request.Builder()
+                .url("${Prefs.PUBLIC_SERVER}api/activate/download?code=$code")
+                .build()
+            client.newCall(request).execute().use { resp ->
+                if (!resp.isSuccessful) return@withContext false
+                val body = resp.body ?: return@withContext false
+                tmp.outputStream().use { out -> body.byteStream().copyTo(out) }
+            }
+            // 校验为合法 sqlite 文件（文件头 16 字节）
+            val head = ByteArray(16)
+            tmp.inputStream().use { it.read(head) }
+            if (!String(head, Charsets.US_ASCII).startsWith("SQLite format 3")) {
+                return@withContext false
+            }
+            // 关闭本地库 → 清理 WAL/SHM → 覆盖（先取路径再关库，避免关库后重开）
+            val dbFile = File(local.dbPath())
+            local.close()
+            File(dbFile.path + "-wal").delete()
+            File(dbFile.path + "-shm").delete()
+            tmp.copyTo(dbFile, overwrite = true)
+            true
+        } catch (_: Exception) {
+            false
+        } finally {
+            tmp.delete()
         }
     }
 

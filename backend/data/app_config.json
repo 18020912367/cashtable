@@ -1,10 +1,10 @@
 {
   "app_name": "截记",
-  "latest_version_code": 23,
-  "latest_version_name": "0.8.4",
-  "apk_url": "http://124.223.74.139:8000/apk/app-debug.apk",
-  "changelog": "切换模式自动刷新记账人；激活码支持重复使用（多设备共用账本）；统计页新增账单导出（日期区间+记账人名+分类名）",
+  "latest_version_code": 25,
+  "latest_version_name": "0.8.6",
+  "apk_url": "https://github.com/18020912367/cashtable/releases/download/v0.8.6/app-debug-v0.8.6.apk",
+  "changelog": "优化部分bug，优化云备份数据逻辑，优化apk下载路径",
   "default_server_url": "http://124.223.74.139:8000/",
-  "apk_md5": "25c6d555b9e330a7689967bfd1ce57fb",
+  "apk_md5": "b36b6e49f044aa0dc3b644e011d24b94",
   "apk_size": 34134059
 }

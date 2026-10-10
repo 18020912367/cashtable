@@ -134,6 +134,29 @@ async def upload_activation_db(
         return {'ok': True, 'message': '激活成功', 'activated_at': now_str()}
 
 
+# ---------- 租户库下载（App 全功能模式启动时同步本地） ----------
+
+@router.get('/download')
+def download_activation_db(code: str):
+    """下载该激活码的云端租户库（{激活码}_cashtable.db）。
+
+    App 全功能模式启动时调用：拉取云端最新数据覆盖本地 sqlite，
+    实现重装/多设备的数据同步。激活码即访问凭证（多设备共用设计）。
+    """
+    code = code.strip()
+    row = get_code(code)
+    if row is None or row.is_activated != 1:
+        raise HTTPException(status_code=403, detail='激活码不存在或未激活')
+    target = ACTIVATED_DB_DIR / f'{code}_cashtable.db'
+    if not target.exists():
+        raise HTTPException(status_code=404, detail='云端数据库不存在')
+    return FileResponse(
+        target,
+        media_type='application/octet-stream',
+        filename=f'{code}_cashtable.db',
+    )
+
+
 # ---------- 标准模板下载（自定义模式：自行导入服务器） ----------
 
 @router.get('/template')

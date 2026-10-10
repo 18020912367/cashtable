@@ -11,11 +11,10 @@
 
 | 下载渠道 | 地址 |
 | --- | --- |
-| **GitHub Releases（推荐）** | [app-debug-v0.8.4.apk](https://github.com/18020912367/cashtable/releases/download/v0.8.4/app-debug-v0.8.4.apk) |
+| **GitHub Releases（推荐）** | [app-debug-v0.8.6.apk](https://github.com/18020912367/cashtable/releases/download/v0.8.6/app-debug-v0.8.6.apk) |
 | 全部历史版本 | [Releases 页面](https://github.com/18020912367/cashtable/releases) |
-| 官网下载 | `http://124.223.74.139:8000/apk/app-debug.apk` |
 
-**当前最新版本：v0.8.4**（versionCode 23，MD5 `25c6d555b9e330a7689967bfd1ce57fb`）
+**当前最新版本：v0.8.6**（versionCode 25，MD5 `b36b6e49f044aa0dc3b644e011d24b94`）
 
 安装说明：
 1. 手机浏览器打开下载链接，下载 APK
@@ -239,6 +238,8 @@ cd android
 
 | 版本 | versionCode | 说明 |
 | --- | --- | --- |
+| [0.8.6](https://github.com/18020912367/cashtable/releases/tag/v0.8.6) | 25 | 优化部分bug，优化云备份数据逻辑，优化apk下载路径 |
+| 0.8.5 | 24 | 修复全功能模式数据隔离问题：账单按激活码隔离存储到专属数据库 |
 | [0.8.4](https://github.com/18020912367/cashtable/releases/tag/v0.8.4) | 23 | 切换模式自动刷新记账人；激活码支持重复使用（多设备共用账本）；统计页新增账单导出（日期区间+记账人名+分类名） |
 | 0.8.3 | 22 | 更新检查固定连接云端；APK 云端托管 |
 | 0.8.2 | 21 | 全新邮政绿主题配色 |

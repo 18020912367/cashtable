@@ -125,6 +125,15 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     // ---- 全功能模式激活 ----
 
+    /** 全功能模式：启动时拉取云端租户库同步到本地（覆盖式；失败静默不打扰启动）。 */
+    suspend fun syncCloudDbOnLaunch() {
+        try {
+            repository.syncFromCloudDb()
+        } catch (_: Exception) {
+            // 同步失败不打扰启动，下次再试
+        }
+    }
+
     /** 设备标识：ANDROID_ID（Android 10+ 无法取真实 MAC，用系统唯一 ID 代替）。 */
     fun deviceMac(): String {
         prefs.deviceMac?.takeIf { it.isNotEmpty() }?.let { return it }

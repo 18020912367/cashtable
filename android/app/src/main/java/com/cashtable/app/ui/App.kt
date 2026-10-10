@@ -69,8 +69,10 @@ fun CashtableApp(
             }
         }
 
-        // 启动即加载分类缓存与 App 配置（记一笔页/明细筛选/版本检查依赖）
+        // 启动即加载分类缓存与 App 配置（记一笔页/明细筛选/版本检查依赖）；
+        // 全功能模式启动时先做一次云端→本地数据同步，再加载其余内容
         LaunchedEffect(Unit) {
+            vm.syncCloudDbOnLaunch()
             vm.loadCategories()
             vm.loadAppConfig()
         }
