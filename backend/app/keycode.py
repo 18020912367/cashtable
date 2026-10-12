@@ -1,12 +1,13 @@
 """激活码管理（keycode.db，独立于主库 cashtable.db）。
 
-表「全功能码」：激活码 / 激活时间 / 激活设备 / 是否已激活。
+表「全功能码」：激活码 / 激活时间 / 激活设备 / 是否已激活 / 备注。
 激活码由管理员通过 scripts/gen_keycode.py 生成后手动发放；
 App 全功能模式激活时校验并写入激活信息。
+备注为管理员侧字段（如标记发放对象），App 端不感知。
 """
 from datetime import datetime
 
-from sqlalchemy import Integer, String, create_engine
+from sqlalchemy import Integer, String, create_engine, inspect, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 
 from .config import KEYCODE_DB_PATH
@@ -35,12 +36,27 @@ class ActivationCode(KeycodeBase):
         String(64), default='', nullable=False
     )  # 激活设备标识（App 端用 ANDROID_ID，Android 10+ 无法可靠取真实 MAC）
     is_activated: Mapped[int] = mapped_column(Integer, default=0, nullable=False)  # 0/1
+    remark: Mapped[str] = mapped_column(
+        String(255), default='', nullable=False
+    )  # 备注（管理员侧：标记发放对象等），App 端不感知
 
 
 def init_keycode_db() -> None:
-    """建表（幂等）。"""
+    """建表（幂等）+ 旧库迁移。"""
     KeycodeBase.metadata.create_all(bind=_keycode_engine)
+    _migrate_remark_column()
     _init_done[0] = True
+
+
+def _migrate_remark_column() -> None:
+    """幂等迁移：旧库「全功能码」表补 remark 列（create_all 不会给已有表加列）。"""
+    insp = inspect(_keycode_engine)
+    cols = {c['name'] for c in insp.get_columns('全功能码')}
+    if 'remark' not in cols:
+        with _keycode_engine.begin() as conn:
+            conn.execute(text(
+                "ALTER TABLE 全功能码 ADD COLUMN remark VARCHAR(255) NOT NULL DEFAULT ''"
+            ))
 
 
 _init_done = [False]
@@ -95,13 +111,28 @@ def activate_code(code: str, device_mac: str) -> None:
         db.close()
 
 
-def create_code(code: str) -> None:
-    """新增激活码（未激活）。"""
+def create_code(code: str, remark: str = '') -> None:
+    """新增激活码（未激活），可附管理员备注。"""
     _ensure_init()
     db = _keycode_session()
     try:
         if db.get(ActivationCode, code) is None:
-            db.add(ActivationCode(code=code))
+            db.add(ActivationCode(code=code, remark=remark))
             db.commit()
+    finally:
+        db.close()
+
+
+def set_remark(code: str, remark: str) -> bool:
+    """设置已有激活码的备注；码不存在返回 False。"""
+    _ensure_init()
+    db = _keycode_session()
+    try:
+        row = db.get(ActivationCode, code)
+        if row is None:
+            return False
+        row.remark = remark
+        db.commit()
+        return True
     finally:
         db.close()

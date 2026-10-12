@@ -60,7 +60,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -85,6 +88,7 @@ fun MeScreen(vm: AppViewModel) {
     var showCustomServer by remember { mutableStateOf(false) }
     var showActivation by remember { mutableStateOf(false) }
     var updateState by remember { mutableStateOf<String?>(null) }
+    var showAbout by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
@@ -345,7 +349,7 @@ fun MeScreen(vm: AppViewModel) {
                 }
             }
             item {
-                SettingRow(icon = Icons.Filled.Person, title = "关于", value = "截记 v${BuildConfig.VERSION_NAME}") {}
+                SettingRow(icon = Icons.Filled.Person, title = "关于", value = "截记 v${BuildConfig.VERSION_NAME}") { showAbout = true }
             }
         }
     }
@@ -384,6 +388,50 @@ fun MeScreen(vm: AppViewModel) {
                 TextButton(onClick = { onBallModeSelected(selectedMode) }) { Text("确定") }
             },
             dismissButton = { TextButton(onClick = { showBallModeDialog = false }) { Text("取消") } },
+        )
+    }
+
+    // 关于：版本 + 管理员联系方式 + 官网与代码仓库
+    if (showAbout) {
+        val clipboard = LocalClipboardManager.current
+        val uriHandler = LocalUriHandler.current
+        AlertDialog(
+            onDismissRequest = { showAbout = false },
+            title = { Text("关于截记") },
+            text = {
+                Column(Modifier.verticalScroll(rememberScrollState())) {
+                    Text(
+                        "版本：v${BuildConfig.VERSION_NAME}",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    Text("管理员联系方式", style = MaterialTheme.typography.titleSmall)
+                    AboutInfoRow("QQ", "928365341", "点击复制") {
+                        clipboard.setText(AnnotatedString("928365341"))
+                        Toast.makeText(context, "已复制 QQ", Toast.LENGTH_SHORT).show()
+                    }
+                    AboutInfoRow("邮箱", "928365341@qq.com", "点击复制") {
+                        clipboard.setText(AnnotatedString("928365341@qq.com"))
+                        Toast.makeText(context, "已复制邮箱", Toast.LENGTH_SHORT).show()
+                    }
+                    AboutInfoRow("微信", "ferocioustigerpink", "点击复制") {
+                        clipboard.setText(AnnotatedString("ferocioustigerpink"))
+                        Toast.makeText(context, "已复制微信", Toast.LENGTH_SHORT).show()
+                    }
+                    Spacer(Modifier.height(10.dp))
+                    Text("官网与仓库", style = MaterialTheme.typography.titleSmall)
+                    AboutInfoRow("官网", "http://www.kuaifangwen.top:8000/", "点击打开") {
+                        uriHandler.openUri("http://www.kuaifangwen.top:8000/")
+                    }
+                    AboutInfoRow("GitHub", "github.com/18020912367/cashtable", "点击打开") {
+                        uriHandler.openUri("https://github.com/18020912367/cashtable")
+                    }
+                    AboutInfoRow("Gitee", "gitee.com/wanxianzhi/cashtable", "点击打开") {
+                        uriHandler.openUri("https://gitee.com/wanxianzhi/cashtable")
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { showAbout = false }) { Text("关闭") } },
         )
     }
 
@@ -957,5 +1005,19 @@ private fun SettingRow(
             modifier = Modifier.weight(1f),
         )
         Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = TextGray)
+    }
+}
+
+/** 「关于」弹窗信息行：点击触发复制或打开链接。 */
+@Composable
+private fun AboutInfoRow(label: String, value: String, hint: String, onClick: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 4.dp),
+    ) {
+        Text("$label：$value", style = MaterialTheme.typography.bodyMedium)
+        Text(hint, style = MaterialTheme.typography.labelSmall, color = TextGray)
     }
 }
