@@ -1,11 +1,12 @@
 {
   "app_name": "截记",
-  "latest_version_code": 27,
-  "latest_version_name": "0.8.8",
-  "apk_url": "https://github.com/18020912367/cashtable/releases/download/v0.8.8/app-debug-v0.8.8.apk",
-  "apk_url_backup": "https://gitee.com/wanxianzhi/cashtable/releases/download/v0.8.8/app-debug-v0.8.8.apk",
-  "changelog": "悬浮窗记账新增手动/自动模式：自动模式一次性授权屏幕截取后，点击悬浮球自动截屏识别，无需先手动截屏",
+  "latest_version_code": 28,
+  "latest_version_name": "0.8.9",
+  "apk_url": "https://github.com/18020912367/cashtable/releases/download/v0.8.9/app-debug-v0.8.9.apk",
+  "apk_url_backup": "https://gitee.com/wanxianzhi/cashtable/releases/download/v0.8.9/app-debug-v0.8.9.apk",
+  "apk_url_cloud": "http://124.223.74.139:8000/apk/app-debug.apk",
+  "changelog": "App 内更新下载新增云端服务器兜底线路：GitHub 失败自动切换 Gitee，再失败自动切换服务器直链；关于页新增管理员联系方式与官网入口",
   "default_server_url": "http://124.223.74.139:8000/",
-  "apk_md5": "f97b58fa08b143fa4fdf4c1b985aab50",
-  "apk_size": 34150479
+  "apk_md5": "8d11dd74902561211b97fa93c6458e60",
+  "apk_size": 34150483
 }

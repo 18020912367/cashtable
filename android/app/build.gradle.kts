@@ -11,8 +11,8 @@ android {
         applicationId = "com.cashtable.app"
         minSdk = 26
         targetSdk = 37
-        versionCode = 27
-        versionName = "0.8.8"
+        versionCode = 28
+        versionName = "0.8.9"
     }
 
     buildTypes {

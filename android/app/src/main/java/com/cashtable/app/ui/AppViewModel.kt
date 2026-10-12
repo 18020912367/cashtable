@@ -292,7 +292,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         private set
     var downloadError by mutableStateOf<String?>(null)
 
-    /** App 内下载最新 APK：主线路（GitHub）失败或校验不符时自动切换备用线路（如 Gitee）。 */
+    /** App 内下载最新 APK：按线路顺序（GitHub → Gitee → 云端服务器）下载，失败或校验不符时自动切换下一条。 */
     fun startUpdateDownload() {
         val cfg = appConfig ?: return
         if (downloading) return
@@ -304,10 +304,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         downloadProgress = 0f
         downloadError = null
 
-        // 候选线路：主链接在前，备用链接（非空时）在后
+        // 候选线路：主链接在前，备用/云端链接（非空时）依次在后
         val urls = buildList {
             add(cfg.apk_url)
             if (cfg.apk_url_backup.isNotBlank()) add(cfg.apk_url_backup)
+            if (cfg.apk_url_cloud.isNotBlank()) add(cfg.apk_url_cloud)
         }
         val expectedMd5 = cfg.apk_md5.trim().lowercase()
 

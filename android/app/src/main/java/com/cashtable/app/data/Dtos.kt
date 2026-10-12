@@ -49,6 +49,8 @@ data class AppConfigDto(
     val apk_url: String,
     /** 备用下载线路（如 Gitee）：主线路下载失败或校验不符时自动切换。 */
     val apk_url_backup: String = "",
+    /** 第三线路（云端服务器直链）：前两条均失败时兜底。 */
+    val apk_url_cloud: String = "",
     /** APK 校验值：下载完成后校验，不匹配则切备用线路。 */
     val apk_md5: String = "",
     /** 配置内容指纹（服务端 MD5）：用于排查本地缓存了旧配置的问题。 */

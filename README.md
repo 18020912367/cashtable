@@ -11,10 +11,10 @@
 
 | 下载渠道 | 地址 |
 | --- | --- |
-| **GitHub Releases（推荐）** | [app-debug-v0.8.8.apk](https://github.com/18020912367/cashtable/releases/download/v0.8.8/app-debug-v0.8.8.apk) |
+| **GitHub Releases（推荐）** | [app-debug-v0.8.9.apk](https://github.com/18020912367/cashtable/releases/download/v0.8.9/app-debug-v0.8.9.apk) |
 | 全部历史版本 | [Releases 页面](https://github.com/18020912367/cashtable/releases) |
 
-**当前最新版本：v0.8.8**（versionCode 27，MD5 `f97b58fa08b143fa4fdf4c1b985aab50`）
+**当前最新版本：v0.8.9**（versionCode 28，MD5 `8d11dd74902561211b97fa93c6458e60`）
 
 安装说明：
 1. 手机浏览器打开下载链接，下载 APK
@@ -213,6 +213,7 @@ cd android
 
 | 版本 | versionCode | 说明 |
 | --- | --- | --- |
+| [0.8.9](https://github.com/18020912367/cashtable/releases/tag/v0.8.9) | 28 | App 内更新下载新增云端服务器兜底线路：GitHub 失败自动切换 Gitee，再失败自动切换服务器直链；关于页新增管理员联系方式与官网入口 |
 | [0.8.8](https://github.com/18020912367/cashtable/releases/tag/v0.8.8) | 27 | 悬浮窗记账新增手动/自动模式：自动模式一次性授权屏幕截取后，点击悬浮球自动截屏识别，无需先手动截屏 |
 | [0.8.7](https://github.com/18020912367/cashtable/releases/tag/v0.8.7) | 26 | 新增APK下载Gitee备用线路：GitHub下载失败自动切换；下载完成后MD5校验防半包 |
 | [0.8.6](https://github.com/18020912367/cashtable/releases/tag/v0.8.6) | 25 | 优化部分bug，优化云备份数据逻辑，优化apk下载路径 |
