@@ -64,12 +64,12 @@
 ┌──────────────────────── Android App (Kotlin) ────────────────────────┐
 │ 记账人选择(本地) · 记一笔 · 账单列表+筛选 · 截图OCR · 悬浮球自动记账 │
 └───────────────┬──────────────────────────────────────────────────────┘
-                │ HTTP（公网 http://124.223.74.139:8000）
-┌───────────────▼─────────── 云端服务器（124.223.74.139）──────────────┐
-│  FastAPI(uvicorn, systemd)：8000 直出 API + /apk APK 静态托管         │
-│  租户库 /home/codefile/cashtabledb/{激活码}_cashtable.db（WAL 模式）   │
+                │ HTTP（公网）
+┌───────────────▼─────────── 云端服务器 ───────────────────────────────┐
+│  FastAPI(uvicorn, systemd)：直出 API + APK 静态托管                   │
+│  租户库按激活码隔离存储（WAL 模式）                                    │
 └───────────────┬──────────────────────────────────────────────────────┘
-                │ frp 隧道 8010 → 本地 8000（开发联调备用通道）
+                │ frp 隧道（开发联调备用通道）
 ┌───────────────▼──────────────────────────────────────────────────────┐
 │                  本地电脑（Windows，开发环境）                          │
 │  FastAPI(uvicorn) ── SQLAlchemy ── SQLite 单文件 (cashtable.db)       │
@@ -91,49 +91,23 @@
 
 ---
 
-## 🛠 技术栈与代码路径
+## 🛠 技术栈
 
-| 层 | 技术选型 | 代码路径 | 说明 |
-| --- | --- | --- | --- |
-| Android 客户端 | Kotlin + Jetpack Compose | `android/app/src/main/java/com/cashtable/app/` | 单 Activity 架构 |
-| 网络层 | Retrofit + OkHttp | `android/.../data/ApiClient.kt` | 与 FastAPI 对接 |
-| 本地存储 | 原生 SQLiteDatabase | `android/.../data/LocalDbHelper.kt` | 本地模式账单库 |
-| 敏感信息 | EncryptedSharedPreferences（Android Keystore） | `android/.../data/Prefs.kt` | LLM Key 加密存储 |
-| 悬浮球 | WindowManager 常驻悬浮球 | `android/.../p4/FloatingBallService.kt` | 自动记账入口 |
-| 后端 | FastAPI（async）+ uvicorn | `backend/app/main.py` | 端口 8000~8009，路由即文档（/docs） |
-| 数据库 | SQLite + SQLAlchemy 2.x | `backend/app/database.py` / `models.py` | 单文件 `cashtable.db`，不引入迁移框架 |
-| 截图识别 | 智谱多模态大模型（主 `glm-4v-flash` / 备用 `glm-4.6v-flash`） | `backend/app/services/vision_service.py` | 429 退避重试，自动切换备用模型 |
-| AI 分类 | OpenAI 兼容 LLM API | `backend/app/services/classify_service.py` | 本地规则未命中时调用 |
-| 规则晋升 | —— | `backend/app/services/rule_service.py` | 临时规则（pending）→ 用户确认 → 固定规则 |
-| 激活码 | SQLite（`keycode.db`） | `backend/app/keycode.py` / `backend/scripts/gen_keycode.py` | 激活码/激活时间/设备 MAC/是否已激活 |
-| 官网 | 静态 HTML | `backend/web/index.html` | App 介绍 + 下载入口 + 在线操作说明 |
-| 部署 | systemd + frp（开发备用） | `backend/scripts/start_services.ps1` / `frpc.toml` | 云端直出公网 8000 |
-
-### 目录结构
-
-```
-cashtable/
-├── android/                              # Android 客户端
-│   └── app/src/main/java/com/cashtable/app/
-│       ├── MainActivity.kt               # 单 Activity 入口
-│       ├── data/                         # ApiClient / Repository / LocalDbHelper / Prefs（网络与存储层）
-│       ├── p4/FloatingBallService.kt     # 悬浮球自动记账服务
-│       └── ui/                           # 记账/明细/统计/我的/模式切换等界面（Jetpack Compose）
-├── backend/                              # FastAPI 后端
-│   ├── app/
-│   │   ├── main.py                       # 应用入口（uvicorn）
-│   │   ├── api/                          # transactions / categories / users / statistics /
-│   │   │                                 #   ai / activate / app_config / imports / rules
-│   │   ├── services/                     # vision_service（截图识别）/ classify_service（AI 分类）/
-│   │   │                                 #   rule_service（规则晋升）/ transaction_service 等
-│   │   ├── database.py · models.py · schemas.py
-│   │   └── keycode.py                    # 激活码库读写
-│   ├── data/                             # cashtable.db / keycode.db / app_config.json（版本配置）/ APK 托管目录
-│   ├── web/                              # 官网页面 + 在线用户操作说明
-│   └── scripts/                          # gen_keycode.py（生成激活码）/ start_services.ps1（服务自启）等
-├── docs/                                 # design.md（设计文档）/ devrule.txt（版本规则）/ 用户操作说明.md
-└── README.md
-```
+| 层 | 技术选型 | 说明 |
+| --- | --- | --- |
+| Android 客户端 | Kotlin + Jetpack Compose | 单 Activity 架构 |
+| 网络层 | Retrofit + OkHttp | 与 FastAPI 对接 |
+| 本地存储 | 原生 SQLiteDatabase | 本地模式账单库 |
+| 敏感信息 | EncryptedSharedPreferences（Android Keystore） | LLM Key 加密存储 |
+| 悬浮球 | WindowManager 常驻悬浮球 | 自动记账入口 |
+| 后端 | FastAPI（async）+ uvicorn | 端口 8000~8009，路由即文档（/docs） |
+| 数据库 | SQLite + SQLAlchemy 2.x | 单文件 `cashtable.db`，不引入迁移框架 |
+| 截图识别 | 智谱多模态大模型（主 `glm-4v-flash` / 备用 `glm-4.6v-flash`） | 429 退避重试，自动切换备用模型 |
+| AI 分类 | OpenAI 兼容 LLM API | 本地规则未命中时调用 |
+| 规则晋升 | —— | 临时规则（pending）→ 用户确认 → 固定规则 |
+| 激活码 | SQLite（`keycode.db`） | 激活码/激活时间/设备 MAC/是否已激活 |
+| 官网 | 静态 HTML | App 介绍 + 下载入口 + 在线操作说明 |
+| 部署 | systemd + frp（开发备用） | 云端直出公网 |
 
 ---
 
@@ -207,7 +181,7 @@ cd android
 
 ## 🚀 发版流程
 
-构建 → 复制 APK 到 `backend/data/apks/` → 更新 `backend/data/app_config.json`（版本/MD5/大小/changelog）→ 同步官网 `backend/web/`（如有改动）→ 上传 backend/app + web + APK + 配置到云端 → 重启 `cashtable-api.service` → 公网验证（`/` 官网、`/api/app/config` 新版本、`/apk/app-debug.apk` 可下载）。
+构建 → 更新版本配置文件（版本/MD5/大小/changelog）→ 上传后端代码、APK 与配置到云端 → 重启后端服务 → 公网验证（官网可访问、更新配置接口返回新版本、APK 可下载）。
 
 同步发布 **GitHub Release**（APK 附件 + changelog）。
 
@@ -215,13 +189,13 @@ cd android
 
 ## ☁️ 云端部署（公共服务器，全功能模式）
 
-- 云端目录：`/home/codefile/cashtable/`（代码 + venv），systemd 服务 `cashtable-api.service`（`PORT=8000`、`KEYCODE_DB_PATH=/home/codefile/cashtabledb/keycode.db`），开机自启
-- 激活码库：`/home/codefile/cashtabledb/keycode.db`（激活码/激活时间/激活设备 MAC/是否已激活）
-- 租户库：`/home/codefile/cashtabledb/{激活码}_cashtable.db`（激活时上传，WAL 模式）
-- 生成激活码：云端执行 `venv/bin/python backend/scripts/gen_keycode.py`
-- 公网 `8000` 由云端后端 systemd 直出：API + APK 静态托管 `/apk/app-debug.apk`
+- 云端以 systemd 部署本项目后端（代码 + venv），开机自启，公网端口由服务端配置
+- 激活码库：服务端私有目录下的 `keycode.db`（激活码/激活时间/激活设备 MAC/是否已激活），路径由 `KEYCODE_DB_PATH` 环境变量指定
+- 租户库：激活时按激活码创建独立 sqlite 文件（WAL 模式），目录由 `ACTIVATED_DB_DIR` 环境变量指定
+- 生成激活码：服务端执行 `backend/scripts/gen_keycode.py`
+- 云端后端 systemd 直出公网：API + APK 静态托管
 - App 更新检查固定连接云端（`/api/app/config`），与运行模式无关；APK 不再依赖本机分发
-- 本地 `frpc.toml` 仅保留 `8010 → 本地 8000` 备用通道（开发联调用）
+- 本地 frpc 仅保留备用隧道（开发联调用）
 - 本地服务自启：`backend/scripts/start_services.ps1 -Install`（frpc + 可选本地后端）
 
 ---
@@ -257,8 +231,8 @@ cd android
 ## 📄 开源说明
 
 - 本地模式无需任何服务器；「自定义/全功能」模式需公网后端（推荐直接部署在 Linux 云服务器上）
-- 全功能模式需在服务端预先生成激活码（`backend/scripts/gen_keycode.py`）并确保目录 `/home/codefile/cashtabledb` 存在（属主 www）
-- 激活码库固化在云端 `/home/codefile/cashtabledb/keycode.db`，不随本地机器迁移
+- 全功能模式需在服务端预先生成激活码（`backend/scripts/gen_keycode.py`）并确保 `ACTIVATED_DB_DIR` 指向的租户目录存在且可写
+- 激活码库固化在服务端（`KEYCODE_DB_PATH` 指定路径），不随本地机器迁移
 - 自定义/全功能模式为多人共享数据库，存在写入冲突风险，建议错峰使用
 
 ## 联系我们
