@@ -24,9 +24,6 @@ class MainActivity : ComponentActivity() {
     /** 自动模式（MediaProjection）截屏文件路径：悬浮球自动截屏后携带，为空走手动流程。 */
     private var autoCapturePath by mutableStateOf<String?>(null)
 
-    /** 自动模式授权失效时：请求自动记账页就地发起重新授权弹窗（页面消费后回调置回 false）。 */
-    private var autoRequestProjection by mutableStateOf(false)
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // 安装完成后自动清理缓存中的更新包（覆盖安装后进程重启时执行）
@@ -35,16 +32,11 @@ class MainActivity : ComponentActivity() {
             autoAccountingSeq++
         }
         intent.getStringExtra(FloatingBallService.EXTRA_CAPTURE_PATH)?.let { autoCapturePath = it }
-        if (intent.getBooleanExtra(FloatingBallService.EXTRA_REQUEST_PROJECTION, false)) {
-            autoRequestProjection = true
-        }
         enableEdgeToEdge()
         setContent {
             CashtableApp(
                 autoAccountingSeq = autoAccountingSeq,
                 autoCapturePath = autoCapturePath,
-                autoRequestProjection = autoRequestProjection,
-                onProjectionConsumed = { autoRequestProjection = false },
             )
         }
     }
@@ -56,8 +48,5 @@ class MainActivity : ComponentActivity() {
             autoAccountingSeq++
         }
         intent.getStringExtra(FloatingBallService.EXTRA_CAPTURE_PATH)?.let { autoCapturePath = it }
-        if (intent.getBooleanExtra(FloatingBallService.EXTRA_REQUEST_PROJECTION, false)) {
-            autoRequestProjection = true
-        }
     }
 }

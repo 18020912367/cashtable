@@ -34,6 +34,17 @@
             </intent-filter>
         </activity>
 
+        <!-- 自动模式授权失效：就地重新授权的透明中转页。
+             独立任务栈（taskAffinity=""）避免把 App 任务带到前台；excludeFromRecents 不进最近任务；
+             configChanges 防止授权弹窗展示期间因旋转等配置变更重建页面导致授权结果丢失 -->
+        <activity
+            android:name=".p4.ProjectionAuthActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|density|uiMode"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
         <!-- P4 悬浮球自动记账入口：前台服务（specialUse 类型，Android 14+ 必需声明） -->
         <service
             android:name=".p4.FloatingBallService"

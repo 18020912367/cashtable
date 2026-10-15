@@ -1,12 +1,12 @@
 {
   "app_name": "截记",
-  "latest_version_code": 31,
-  "latest_version_name": "0.9.12",
-  "apk_url": "https://github.com/18020912367/cashtable/releases/download/v0.9.12/app-debug-v0.9.12.apk",
-  "apk_url_backup": "https://gitee.com/wanxianzhi/cashtable/releases/download/v0.9.12/app-debug-v0.9.12.apk",
+  "latest_version_code": 32,
+  "latest_version_name": "0.9.13",
+  "apk_url": "https://github.com/18020912367/cashtable/releases/download/v0.9.13/app-debug-v0.9.13.apk",
+  "apk_url_backup": "https://gitee.com/wanxianzhi/cashtable/releases/download/v0.9.13/app-debug-v0.9.13.apk",
   "apk_url_cloud": "http://124.223.74.139:8000/apk/app-debug.apk",
-  "changelog": "修复熄屏后自动识别失败的问题；悬浮球自动模式授权失效时可直接就地重新授权；新增电池优化白名单引导，降低自动截屏授权被系统回收的概率",
+  "changelog": "悬浮球自动模式授权失效时改为就地透明授权：不离开当前界面直接弹出系统授权弹窗，同意后自动截取当前屏幕（保住支付页画面）再进入记账页，拒绝则静默返回原界面",
   "default_server_url": "http://124.223.74.139:8000/",
-  "apk_md5": "240c16d0fa9a954ff0a91f0bbfc40cc8",
-  "apk_size": 34183347
+  "apk_md5": "b4a958831bb9b5b051bf71f19106c105",
+  "apk_size": 34167079
 }

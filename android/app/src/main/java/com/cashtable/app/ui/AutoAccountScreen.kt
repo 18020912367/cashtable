@@ -4,7 +4,6 @@ import android.app.Activity
 import android.content.ContentUris
 import android.content.Context
 import android.content.pm.PackageManager
-import android.media.projection.MediaProjectionManager
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
@@ -76,13 +75,11 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.cashtable.app.data.CategoryDto
-import com.cashtable.app.p4.ScreenCaptureService
 import com.cashtable.app.ui.components.categoryImage
 import com.cashtable.app.ui.theme.BgGray
 import com.cashtable.app.ui.theme.TextGray
 import com.cashtable.app.util.Formatters
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -103,8 +100,6 @@ import java.time.ZoneId
 fun AutoAccountScreen(
     vm: AppViewModel,
     capturePath: String? = null,
-    requestProjection: Boolean = false,
-    onProjectionConsumed: () -> Unit = {},
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -170,47 +165,6 @@ fun AutoAccountScreen(
         }
     }
 
-    // 自动模式授权失效后的就地恢复：悬浮球点击时发现投影会话已失效（如熄屏被系统回收），
-    // 直接在本页发起系统授权弹窗；用户同意后重启截屏服务会话，并立即补拍当前屏幕继续识别
-    val projectionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { r ->
-        onProjectionConsumed()
-        val data = r.data
-        if (r.resultCode == Activity.RESULT_OK && data != null) {
-            ScreenCaptureService.start(context, r.resultCode, data)
-            activityScope.launch {
-                var ready = false
-                repeat(40) {
-                    if (ScreenCaptureService.isReady) {
-                        ready = true
-                        return@repeat
-                    }
-                    delay(50)
-                }
-                if (ready) {
-                    val path = ScreenCaptureService.captureNow(context)
-                    if (path != null) {
-                        recognizeUri(Uri.fromFile(File(path)))
-                    } else {
-                        error = "截屏服务已就绪但取帧失败，请手动截屏后选择图片"
-                    }
-                } else {
-                    error = "截屏服务启动超时，请手动截屏后选择图片"
-                }
-            }
-        } else {
-            error = "未授予截屏授权，请手动截屏后选择图片"
-        }
-    }
-
-    LaunchedEffect(requestProjection) {
-        if (requestProjection) {
-            val mpm = context.getSystemService(MediaProjectionManager::class.java)
-            projectionLauncher.launch(mpm.createScreenCaptureIntent())
-        }
-    }
-
     // 兜底：自动读取失败时可手动从相册选择（同截图记账页的 Photo Picker，无需相册权限）
     val pickImage = rememberLauncherForActivityResult(
         ActivityResultContracts.PickVisualMedia()
@@ -244,8 +198,6 @@ fun AutoAccountScreen(
     LaunchedEffect(Unit) {
         // 先确保分类已加载，保证识别结果能正确匹配分类
         if (vm.categories.isEmpty()) vm.loadCategories()
-        // 授权失效恢复流程：等待用户授权后由 projectionLauncher 补拍识别，不走相册自动读取
-        if (requestProjection) return@LaunchedEffect
         // 自动模式：悬浮球已自动截屏（应用私有文件），无需相册权限，直接识别
         if (capturePath != null) {
             val f = File(capturePath)

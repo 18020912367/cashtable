@@ -11,7 +11,7 @@
 
 | 下载渠道 | 地址 |
 | --- | --- |
-| **GitHub Releases（推荐）** | [app-debug-v0.9.12.apk](https://github.com/18020912367/cashtable/releases/download/v0.9.12/app-debug-v0.9.12.apk) |
+| **GitHub Releases（推荐）** | [app-debug-v0.9.13.apk](https://github.com/18020912367/cashtable/releases/download/v0.9.13/app-debug-v0.9.13.apk) |
 | 全部历史版本 | [Releases 页面](https://github.com/18020912367/cashtable/releases) |
 
 **当前最新版本：v0.9.12**（versionCode 31，MD5 `240c16d0fa9a954ff0a91f0bbfc40cc8`）
@@ -213,6 +213,7 @@ cd android
 
 | 版本 | versionCode | 说明 |
 | --- | --- | --- |
+| [0.9.13](https://github.com/18020912367/cashtable/releases/tag/v0.9.13) | 32 | 悬浮球自动模式授权失效时改为就地透明授权：不离开当前界面直接弹出系统授权弹窗，同意后自动截取当前屏幕（保住支付页画面）再进入记账页，拒绝则静默返回原界面 |
 | [0.9.12](https://github.com/18020912367/cashtable/releases/tag/v0.9.12) | 31 | 修复熄屏后自动识别失败的问题；悬浮球自动模式授权失效时可直接就地重新授权（弹出系统授权弹窗，同意后自动补拍识别）；新增电池优化白名单引导，降低自动截屏授权被系统回收的概率 |
 | [0.9.1](https://github.com/18020912367/cashtable/releases/tag/v0.9.1) | 30 | 修复悬浮球自动截屏模式在 Android 14+ 设备上开启即闪退的问题（补齐前台服务权限声明）；服务因系统不兼容无法启动时增加明确提示，便于联系管理员处理 |
 | [0.9.0](https://github.com/18020912367/cashtable/releases/tag/v0.9.0) | 29 | 分类管理升级：长按分类图标即可编辑名称或删除分类（一级删除会连同其下二级分类，账单保留）；新增崩溃与功能异常日志（全功能模式），异常自动上报云端便于快速排查 |
