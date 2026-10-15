@@ -155,7 +155,9 @@ class FloatingBallService : Service() {
                     toast("自动截屏失败，请手动截屏后点击悬浮球")
                 } else {
                     CrashLog.log(this, "PROJECTION_EXPIRED", "自动截屏授权已失效（服务未就绪）")
-                    toast("自动截屏授权已失效，请手动截屏，或到设置重新开启悬浮球")
+                    // 授权就地恢复：携带 requestProjection 进入自动记账页，直接弹出重新授权
+                    intent.putExtra(EXTRA_REQUEST_PROJECTION, true)
+                    toast("自动截屏授权已失效，正在发起重新授权…")
                 }
                 // 自动模式降级：仍走手动流程（用户已系统截屏的场景可正常识别）
                 startActivity(intent)
@@ -197,9 +199,11 @@ class FloatingBallService : Service() {
     companion object {
         /** 悬浮球点击跳转自动记账页的 Intent 标志。 */
         const val EXTRA_AUTO_ACCOUNTING = "auto_accounting"
-
         /** 自动模式：悬浮球自动截屏后跳转自动记账页的私有截图路径 Intent 标志。 */
         const val EXTRA_CAPTURE_PATH = "capture_path"
+
+        /** 自动模式授权失效时：请求自动记账页就地发起重新授权弹窗的 Intent 标志。 */
+        const val EXTRA_REQUEST_PROJECTION = "request_projection"
         private const val ACTION_STOP = "com.cashtable.app.p4.STOP"
         private const val CHANNEL_ID = "floating_ball"
         private const val NOTIFY_ID = 1001

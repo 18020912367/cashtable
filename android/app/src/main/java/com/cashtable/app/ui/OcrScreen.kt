@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -75,6 +76,7 @@ import com.cashtable.app.ui.theme.BgGray
 import com.cashtable.app.ui.theme.PrimaryGreen
 import com.cashtable.app.ui.theme.TextGray
 import com.cashtable.app.util.Formatters
+import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import java.io.ByteArrayOutputStream
 import java.time.Instant
@@ -89,6 +91,10 @@ import kotlin.math.min
 fun OcrScreen(vm: AppViewModel, onBack: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+
+    // 识别请求挂 Activity 生命周期域：页面被系统销毁重建（如熄屏）后请求不中断，
+    // 避免挂在 rememberCoroutineScope 上的任务因 composition 离开被取消（ForgottenCoroutineScopeException）
+    val activityScope = (context as? ComponentActivity)?.lifecycleScope ?: scope
 
     var imageBytes by remember { mutableStateOf<ByteArray?>(null) }
     var preview by remember { mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null) }
@@ -118,7 +124,7 @@ fun OcrScreen(vm: AppViewModel, onBack: () -> Unit) {
             imageBytes = bytes
             preview = bmp.asImageBitmap()
             recognizing = true
-            scope.launch {
+            activityScope.launch {
                 val result = vm.extractFromImage(bytes, "image/jpeg")
                 if (result != null) {
                     onExtracted(result, vm.categories) { t, k, a, c, ca ->
@@ -240,7 +246,7 @@ fun OcrScreen(vm: AppViewModel, onBack: () -> Unit) {
                     imageBytes?.let { bytes ->
                         error = null
                         recognizing = true
-                        scope.launch {
+                        activityScope.launch {
                             val result = vm.extractFromImage(bytes, "image/jpeg")
                             if (result != null) {
                                 onExtracted(result, vm.categories) { t, k, a, c, ca ->

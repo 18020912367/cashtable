@@ -9,6 +9,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.os.PowerManager
 import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -338,6 +339,36 @@ fun MeScreen(vm: AppViewModel) {
                         title = "悬浮球模式",
                         value = if (ballMode == FloatingModeStore.AUTO) "自动（授权后自动截屏）" else "手动（系统截屏）",
                     ) { showBallModeDialog = true }
+                }
+                if (ballMode == FloatingModeStore.AUTO) {
+                    item {
+                        // 自动模式依赖常驻截屏会话：系统熄屏/省电可能回收投影会话导致授权失效，
+                        // 加入电池优化白名单可显著降低被杀概率，延长一次授权的存活时间
+                        val ignoring = remember {
+                            (context.getSystemService(PowerManager::class.java))
+                                .isIgnoringBatteryOptimizations(context.packageName)
+                        }
+                        SettingRow(
+                            icon = Icons.Filled.Settings,
+                            title = "电池优化白名单",
+                            value = if (ignoring) "已忽略电池优化" else "建议开启，防自动截屏失效",
+                        ) {
+                            if (!ignoring) {
+                                val i = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                                    data = Uri.parse("package:${context.packageName}")
+                                }
+                                try {
+                                    context.startActivity(i)
+                                } catch (_: Exception) {
+                                    // 部分系统屏蔽该直达动作：退回应用详情页手动设置
+                                    val fallback = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                        data = Uri.parse("package:${context.packageName}")
+                                    }
+                                    context.startActivity(fallback)
+                                }
+                            }
+                        }
+                    }
                 }
             }
             item {

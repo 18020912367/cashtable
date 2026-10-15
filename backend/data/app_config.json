@@ -1,12 +1,12 @@
 {
   "app_name": "截记",
-  "latest_version_code": 30,
-  "latest_version_name": "0.9.1",
-  "apk_url": "https://github.com/18020912367/cashtable/releases/download/v0.9.1/app-debug-v0.9.1.apk",
-  "apk_url_backup": "https://gitee.com/wanxianzhi/cashtable/releases/download/v0.9.1/app-debug-v0.9.1.apk",
+  "latest_version_code": 31,
+  "latest_version_name": "0.9.12",
+  "apk_url": "https://github.com/18020912367/cashtable/releases/download/v0.9.12/app-debug-v0.9.12.apk",
+  "apk_url_backup": "https://gitee.com/wanxianzhi/cashtable/releases/download/v0.9.12/app-debug-v0.9.12.apk",
   "apk_url_cloud": "http://124.223.74.139:8000/apk/app-debug.apk",
-  "changelog": "修复悬浮球自动截屏模式在 Android 14+ 设备上开启即闪退的问题（补齐前台服务权限声明）；服务因系统不兼容无法启动时增加明确提示，便于联系管理员处理",
+  "changelog": "修复熄屏后自动识别失败的问题；悬浮球自动模式授权失效时可直接就地重新授权；新增电池优化白名单引导，降低自动截屏授权被系统回收的概率",
   "default_server_url": "http://124.223.74.139:8000/",
-  "apk_md5": "e02c06883997566d401d0ac9b6724934",
-  "apk_size": 34180705
+  "apk_md5": "240c16d0fa9a954ff0a91f0bbfc40cc8",
+  "apk_size": 34183347
 }

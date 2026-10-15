@@ -49,7 +49,7 @@ sealed class Screen {
     data object Me : Screen()
     data object Add : Screen()
     data object Ocr : Screen()
-    data class AutoAccount(val seq: Int, val capturePath: String? = null) : Screen()
+    data class AutoAccount(val seq: Int, val capturePath: String? = null, val requestProjection: Boolean = false) : Screen()
     data class Edit(val tx: com.cashtable.app.data.TransactionDto) : Screen()
 }
 
@@ -58,6 +58,8 @@ fun CashtableApp(
     vm: AppViewModel = viewModel(),
     autoAccountingSeq: Int = 0,
     autoCapturePath: String? = null,
+    autoRequestProjection: Boolean = false,
+    onProjectionConsumed: () -> Unit = {},
 ) {
     CashtableTheme {
         var screen by remember { mutableStateOf<Screen>(Screen.Detail) }
@@ -67,7 +69,7 @@ fun CashtableApp(
         // capturePath 非空 = 自动模式（悬浮球已自动截屏），页面直接识别该截图
         LaunchedEffect(autoAccountingSeq) {
             if (autoAccountingSeq > 0) {
-                screen = Screen.AutoAccount(autoAccountingSeq, autoCapturePath)
+                screen = Screen.AutoAccount(autoAccountingSeq, autoCapturePath, autoRequestProjection)
             }
         }
 
@@ -150,7 +152,13 @@ fun CashtableApp(
                 BackHandler { screen = Screen.Detail }
                 val auto = screen as Screen.AutoAccount
                 key(auto.seq) {
-                    AutoAccountScreen(vm = vm, capturePath = auto.capturePath, onBack = { screen = Screen.Detail })
+                    AutoAccountScreen(
+                        vm = vm,
+                        capturePath = auto.capturePath,
+                        requestProjection = auto.requestProjection,
+                        onProjectionConsumed = onProjectionConsumed,
+                        onBack = { screen = Screen.Detail },
+                    )
                 }
             }
             screen is Screen.Edit -> {
