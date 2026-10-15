@@ -53,8 +53,9 @@ class FloatingBallService : Service() {
                 } else 0,
             )
         } catch (e: Exception) {
-            // 前台服务启动失败（系统限制/通知权限等）：记录日志并退出，避免崩溃
-            CrashLog.log(this, "FGS_FAIL", "悬浮球前台服务启动失败: ${e.stackTraceToString()}")
+            // 前台服务启动失败（系统限制/通知权限等）：记录日志、提示用户并退出，避免崩溃
+            CrashLog.log(this, "SYSTEM_INCOMPATIBLE", "悬浮球前台服务启动失败: ${e.stackTraceToString()}")
+            toast("功能和当前系统不兼容，服务崩溃，请联系管理员处理")
             stopSelf()
             return
         }

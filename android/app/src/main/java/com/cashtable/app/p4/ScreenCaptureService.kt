@@ -47,15 +47,23 @@ class ScreenCaptureService : Service() {
             return START_NOT_STICKY
         }
         // Android 14+（targetSdk 34+）要求：mediaProjection 类型前台服务必须
-        // 先以 FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION 调用 startForeground，再 getMediaProjection
-        ServiceCompat.startForeground(
-            this,
-            NOTIFY_ID,
-            buildNotification(),
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
-            } else 0,
-        )
+        // 先以 FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION 调用 startForeground，再 getMediaProjection。
+        // 兜底：manifest 权限缺失/投影授权已失效时系统抛 SecurityException，捕获避免主进程闪退。
+        try {
+            ServiceCompat.startForeground(
+                this,
+                NOTIFY_ID,
+                buildNotification(),
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
+                } else 0,
+            )
+        } catch (e: Exception) {
+            CrashLog.log(this, "SYSTEM_INCOMPATIBLE", "截屏前台服务启动被拒: ${e.stackTraceToString()}")
+            toast("功能和当前系统不兼容，服务崩溃，请联系管理员处理")
+            stopSelf()
+            return START_NOT_STICKY
+        }
         val resultCode = intent?.getIntExtra(EXTRA_RESULT_CODE, 0) ?: 0
         val resultData = intent?.parcelableIntentExtra(EXTRA_RESULT_DATA)
         if (resultData == null) {
