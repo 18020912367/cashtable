@@ -89,6 +89,27 @@ class LocalAccountDataSource(context: Context) {
             )
         }
 
+    fun updateCategory(id: Int, name: String) {
+        dbHelper.writableDatabase.use { db ->
+            db.execSQL("UPDATE categories SET name = ? WHERE id = ?", arrayOf<Any?>(name.trim(), id))
+        }
+    }
+
+    /** 删除分类：一级分类级联删其全部二级分类；关联账单的 category_id 置空（保留账单）。 */
+    fun deleteCategory(id: Int) {
+        dbHelper.writableDatabase.use { db ->
+            val childIds = mutableListOf<Long>()
+            db.rawQuery(
+                "SELECT id FROM categories WHERE parent_id = ?", arrayOf(id.toString())
+            ).use { c -> while (c.moveToNext()) childIds.add(c.getLong(0)) }
+            val allIds = childIds + id
+            val placeholders = allIds.joinToString(",") { "?" }
+            val args = allIds.map { it.toString() }.toTypedArray()
+            db.execSQL("UPDATE transactions SET category_id = NULL WHERE category_id IN ($placeholders)", args)
+            db.execSQL("DELETE FROM categories WHERE id IN ($placeholders)", args)
+        }
+    }
+
     // ---------- 账单 ----------
 
     fun loadTransactions(

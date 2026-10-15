@@ -10,6 +10,7 @@ from .api import (
     app_config,
     categories,
     imports,
+    logs_api,
     rules,
     statistics,
     transactions,
@@ -46,6 +47,7 @@ app.include_router(ai.router)
 app.include_router(statistics.router)
 app.include_router(app_config.router)
 app.include_router(activate.router)
+app.include_router(logs_api.router)
 
 
 # APK 静态托管（App 更新下载统一走云端，不再依赖本机开发环境）

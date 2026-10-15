@@ -33,5 +33,5 @@ def update_category(cid: int, data: CategoryUpdate, db: Session = Depends(get_db
 
 @router.delete('/categories/{cid}/', status_code=204)
 def delete_category(cid: int, db: Session = Depends(get_db)):
-    """删除分类（存在子分类或被账单引用时拒绝）。"""
+    """删除分类：一级分类级联删其二级分类，关联账单的 category_id 置空。"""
     category_service.delete_category(db, cid)

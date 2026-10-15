@@ -102,7 +102,6 @@ fun AddScreen(
     var subMenuFor by remember { mutableStateOf<CategoryDto?>(null) }
     var subMenuFromMore by remember { mutableStateOf(false) }
     var showAddCategory by remember { mutableStateOf(false) }
-    var subNameInput by remember { mutableStateOf("") }
     var addNameInput by remember { mutableStateOf("") }
     var addIconKey by remember { mutableStateOf(iconChoices.first().first) }
     var showDatePicker by remember { mutableStateOf(false) }
@@ -393,7 +392,6 @@ fun AddScreen(
     // 关闭弹窗时清理输入，避免下次打开残留
     fun closeSubMenu() {
         subMenuFor = null
-        subNameInput = ""
     }
 
     fun closeAddDialog() {
@@ -461,80 +459,14 @@ fun AddScreen(
         )
     }
 
-    // ---- 二级分类菜单（长按分类图标触发；列式名称 + 可新增二级） ----
+    // ---- 二级分类菜单（长按分类图标触发；含编辑/删除维护操作，三页共用组件） ----
     subMenuFor?.let { top ->
-        val subs = vm.categories.filter { it.parent_id == top.id }
-        AlertDialog(
-            onDismissRequest = { closeSubMenu() },
-            title = { Text("${top.name} · 二级分类") },
-            text = {
-                Column(Modifier.verticalScroll(rememberScrollState())) {
-                    // 一级分类本身：选择后回到一级
-                    Text(
-                        text = "${top.name}（一级分类）",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .combinedClickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null,
-                                onClick = {
-                                    selectSub(top)
-                                    closeSubMenu()
-                                },
-                            )
-                            .padding(vertical = 10.dp),
-                    )
-                    HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
-                    if (subs.isEmpty()) {
-                        Text("暂无二级分类，可在下方新增", color = TextGray, style = MaterialTheme.typography.bodySmall)
-                        Spacer(Modifier.height(8.dp))
-                    }
-                    subs.forEach { sub ->
-                        Text(
-                            text = sub.name,
-                            style = MaterialTheme.typography.bodyLarge,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .combinedClickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = null,
-                                    onClick = {
-                                        selectSub(sub)
-                                        closeSubMenu()
-                                    },
-                                )
-                                .padding(vertical = 10.dp),
-                        )
-                    }
-                    HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        OutlinedTextField(
-                            value = subNameInput,
-                            onValueChange = { subNameInput = it },
-                            label = { Text("新增二级分类") },
-                            singleLine = true,
-                            modifier = Modifier.weight(1f),
-                        )
-                        TextButton(
-                            onClick = {
-                                val name = subNameInput.trim()
-                                if (name.isNotEmpty()) {
-                                    scope.launch {
-                                        val created = vm.createCategory(name, kind, parentId = top.id)
-                                        if (created != null) {
-                                            selectSub(created)
-                                            closeSubMenu()
-                                        }
-                                    }
-                                }
-                            },
-                        ) { Text("新增") }
-                    }
-                }
-            },
-            confirmButton = { TextButton(onClick = { closeSubMenu() }) { Text("取消") } },
+        CategorySubMenuDialog(
+            top = top,
+            kind = kind,
+            vm = vm,
+            onSelect = { selectSub(it) },
+            onDismiss = { closeSubMenu() },
         )
     }
 

@@ -548,55 +548,17 @@ fun AutoAccountScreen(vm: AppViewModel, capturePath: String? = null, onBack: () 
         )
     }
 
-    // 二级分类列式菜单（长按一级分类图标触发）
+    // 二级分类列式菜单（长按一级分类图标触发，含编辑/删除维护操作，三页共用组件）
     subMenuFor?.let { top ->
-        val subs = vm.categories.filter { it.parent_id == top.id }
-        AlertDialog(
-            onDismissRequest = { subMenuFor = null },
-            title = { Text("${top.name} · 二级分类") },
-            text = {
-                Column(Modifier.verticalScroll(rememberScrollState())) {
-                    Text(
-                        text = "${top.name}（一级分类）",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .combinedClickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null,
-                                onClick = {
-                                    selectedCategory = top
-                                    subMenuFor = null
-                                },
-                            )
-                            .padding(vertical = 10.dp),
-                    )
-                    HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
-                    if (subs.isEmpty()) {
-                        Text("暂无二级分类", color = TextGray, style = MaterialTheme.typography.bodySmall)
-                        Spacer(Modifier.height(8.dp))
-                    }
-                    subs.forEach { sub ->
-                        Text(
-                            text = sub.name,
-                            style = MaterialTheme.typography.bodyLarge,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .combinedClickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = null,
-                                    onClick = {
-                                        selectedCategory = sub
-                                        subMenuFor = null
-                                    },
-                                )
-                                .padding(vertical = 10.dp),
-                        )
-                    }
-                }
+        CategorySubMenuDialog(
+            top = top,
+            kind = kind,
+            vm = vm,
+            onSelect = {
+                selectedCategory = it
+                subMenuFor = null
             },
-            confirmButton = { TextButton(onClick = { subMenuFor = null }) { Text("取消") } },
+            onDismiss = { subMenuFor = null },
         )
     }
 

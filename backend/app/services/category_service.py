@@ -60,19 +60,15 @@ def update_category(db: Session, cid: int, data: CategoryUpdate) -> Category:
 
 
 def delete_category(db: Session, cid: int) -> None:
-    """删除分类：存在子分类或被账单引用时拒绝。"""
+    """删除分类：一级分类级联删除其全部二级分类；关联账单的 category_id 置空（保留账单）。"""
     category = db.get(Category, cid)
     if category is None:
         raise HTTPException(status_code=404, detail='分类不存在')
 
-    child = db.scalar(select(Category.id).where(Category.parent_id == cid).limit(1))
-    if child:
-        raise HTTPException(status_code=400, detail='该分类下存在二级分类，不能删除')
-    used = db.scalar(
-        select(Transaction.id).where(Transaction.category_id == cid).limit(1)
+    child_ids = list(db.scalars(select(Category.id).where(Category.parent_id == cid)).all())
+    ids = [cid] + child_ids
+    db.query(Transaction).filter(Transaction.category_id.in_(ids)).update(
+        {Transaction.category_id: None}, synchronize_session=False
     )
-    if used:
-        raise HTTPException(status_code=400, detail='该分类已被账单使用，不能删除')
-
-    db.delete(category)
+    db.query(Category).filter(Category.id.in_(ids)).delete(synchronize_session=False)
     db.commit()

@@ -11,10 +11,10 @@
 
 | 下载渠道 | 地址 |
 | --- | --- |
-| **GitHub Releases（推荐）** | [app-debug-v0.8.9.apk](https://github.com/18020912367/cashtable/releases/download/v0.8.9/app-debug-v0.8.9.apk) |
+| **GitHub Releases（推荐）** | [app-debug-v0.9.0.apk](https://github.com/18020912367/cashtable/releases/download/v0.9.0/app-debug-v0.9.0.apk) |
 | 全部历史版本 | [Releases 页面](https://github.com/18020912367/cashtable/releases) |
 
-**当前最新版本：v0.8.9**（versionCode 28，MD5 `8d11dd74902561211b97fa93c6458e60`）
+**当前最新版本：v0.9.0**（versionCode 29，MD5 `22997cef90d4abd702d2812c9e9feea7`）
 
 安装说明：
 1. 手机浏览器打开下载链接，下载 APK
@@ -213,6 +213,7 @@ cd android
 
 | 版本 | versionCode | 说明 |
 | --- | --- | --- |
+| [0.9.0](https://github.com/18020912367/cashtable/releases/tag/v0.9.0) | 29 | 分类管理升级：长按分类图标即可编辑名称或删除分类（一级删除会连同其下二级分类，账单保留）；新增崩溃与功能异常日志（全功能模式），异常自动上报云端便于快速排查 |
 | [0.8.9](https://github.com/18020912367/cashtable/releases/tag/v0.8.9) | 28 | App 内更新下载新增云端服务器兜底线路：GitHub 失败自动切换 Gitee，再失败自动切换服务器直链；关于页新增管理员联系方式与官网入口 |
 | [0.8.8](https://github.com/18020912367/cashtable/releases/tag/v0.8.8) | 27 | 悬浮窗记账新增手动/自动模式：自动模式一次性授权屏幕截取后，点击悬浮球自动截屏识别，无需先手动截屏 |
 | [0.8.7](https://github.com/18020912367/cashtable/releases/tag/v0.8.7) | 26 | 新增APK下载Gitee备用线路：GitHub下载失败自动切换；下载完成后MD5校验防半包 |

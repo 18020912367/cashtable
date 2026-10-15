@@ -1,12 +1,12 @@
 {
   "app_name": "截记",
-  "latest_version_code": 28,
-  "latest_version_name": "0.8.9",
-  "apk_url": "https://github.com/18020912367/cashtable/releases/download/v0.8.9/app-debug-v0.8.9.apk",
-  "apk_url_backup": "https://gitee.com/wanxianzhi/cashtable/releases/download/v0.8.9/app-debug-v0.8.9.apk",
+  "latest_version_code": 29,
+  "latest_version_name": "0.9.0",
+  "apk_url": "https://github.com/18020912367/cashtable/releases/download/v0.9.0/app-debug-v0.9.0.apk",
+  "apk_url_backup": "https://gitee.com/wanxianzhi/cashtable/releases/download/v0.9.0/app-debug-v0.9.0.apk",
   "apk_url_cloud": "http://124.223.74.139:8000/apk/app-debug.apk",
-  "changelog": "App 内更新下载新增云端服务器兜底线路：GitHub 失败自动切换 Gitee，再失败自动切换服务器直链；关于页新增管理员联系方式与官网入口",
+  "changelog": "分类管理升级：长按分类图标即可编辑名称或删除分类（一级删除会连同其下二级分类，账单保留）；新增崩溃与功能异常日志（全功能模式），异常自动上报云端便于快速排查",
   "default_server_url": "http://124.223.74.139:8000/",
-  "apk_md5": "8d11dd74902561211b97fa93c6458e60",
-  "apk_size": 34150483
+  "apk_md5": "22997cef90d4abd702d2812c9e9feea7",
+  "apk_size": 34166895
 }

@@ -72,6 +72,11 @@ data class CategoryCreateRequest(
     val icon: String = "",
 )
 
+/** 修改分类请求体（当前仅支持改名称）。 */
+data class CategoryUpdateRequest(
+    val name: String,
+)
+
 data class TransactionCreateRequest(
     val amount: Double,
     val category_id: Int?,

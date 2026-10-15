@@ -29,6 +29,11 @@ DATA_DIR.mkdir(exist_ok=True)
 APK_DIR = DATA_DIR / 'apks'
 APK_DIR.mkdir(exist_ok=True)
 
+# 运行日志目录（App 崩溃/功能异常上报：每个激活码一个 {code}.log，一行一条）
+# 云端（Linux）固定项目根 /home/codefile/cashtable/logs；本地 Windows 用项目根 logs/
+LOG_DIR = Path(os.getenv('LOG_DIR', str(BASE_DIR.parent / 'logs')))
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+
 # 官网静态站点目录（App 介绍与下载页，服务在 http://<server>/）
 WEB_DIR = BASE_DIR / 'web'
 WEB_DIR.mkdir(exist_ok=True)

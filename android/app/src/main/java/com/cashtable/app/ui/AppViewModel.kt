@@ -15,6 +15,7 @@ import com.cashtable.app.data.ActivationCheckResponse
 import com.cashtable.app.data.AppConfigDto
 import com.cashtable.app.data.AppMode
 import com.cashtable.app.data.CategoryDto
+import com.cashtable.app.data.CrashLog
 import com.cashtable.app.data.Prefs
 import com.cashtable.app.data.Repository
 import com.cashtable.app.data.TransactionDto
@@ -129,8 +130,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     suspend fun syncCloudDbOnLaunch() {
         try {
             repository.syncFromCloudDb()
-        } catch (_: Exception) {
-            // 同步失败不打扰启动，下次再试
+        } catch (e: Exception) {
+            // 同步失败不打扰启动，下次再试；记录异常日志（全功能模式上报云端）
+            CrashLog.log(getApplication(), "SYNC_FAIL", "云端租户库同步失败: ${e.stackTraceToString()}")
         }
     }
 
@@ -172,6 +174,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 result.message
             }
         } catch (e: Exception) {
+            CrashLog.log(getApplication(), "ACTIVATE_FAIL", "激活流程异常: ${e.stackTraceToString()}")
             e.message ?: "激活失败，请重试"
         }
     }
@@ -256,6 +259,30 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /** 修改分类名称，成功返回 true 并刷新缓存。 */
+    suspend fun updateCategory(id: Int, name: String): Boolean {
+        return try {
+            repository.updateCategory(id, name)
+            loadCategories()
+            true
+        } catch (e: Exception) {
+            serverError = e.message ?: "修改分类失败"
+            false
+        }
+    }
+
+    /** 删除分类（一级级联删二级，账单分类置空），成功返回 true 并刷新缓存。 */
+    suspend fun deleteCategory(id: Int): Boolean {
+        return try {
+            repository.deleteCategory(id)
+            loadCategories()
+            true
+        } catch (e: Exception) {
+            serverError = e.message ?: "删除分类失败"
+            false
+        }
+    }
+
     /** 动态分类（从"更多"加载的快捷分类）读写。 */
     fun dynamicCategoryId(kind: String): Int? = prefs.getDynamicCategoryId(kind)
 
@@ -336,6 +363,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             if (ok && dest.exists() && dest.length() > 0) {
                 installApk(app, dest)
             } else {
+                CrashLog.log(app, "UPDATE_FAIL", "三条线路下载均失败: $urls")
                 downloadError = "下载失败，请检查网络后重试"
             }
         }
@@ -351,7 +379,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
         try {
             context.startActivity(intent)
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            CrashLog.log(context, "INSTALL_FAIL", "启动 APK 安装器失败: ${e.stackTraceToString()}")
             downloadError = "无法启动安装，请在系统设置中允许安装未知应用"
         }
     }
@@ -362,6 +391,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             serverError = null
             repository.extractFromImage(bytes, mime)
         } catch (e: Exception) {
+            CrashLog.log(getApplication(), "OCR_FAIL", "截图识别失败: ${e.stackTraceToString()}")
             serverError = e.message ?: "识别失败，请重试"
             null
         }

@@ -72,6 +72,18 @@ class Repository(private val prefs: Prefs, context: Context) {
             { api.createCategory(CategoryCreateRequest(name = name, kind = kind, icon = icon, parent_id = parentId)) },
         )
 
+    /** 修改分类（当前仅名称）。 */
+    suspend fun updateCategory(id: Int, name: String) = route(
+        { local.updateCategory(id, name) },
+        { api.updateCategory(id, CategoryUpdateRequest(name = name)) },
+    )
+
+    /** 删除分类（一级级联删二级，账单分类置空）。 */
+    suspend fun deleteCategory(id: Int) = route(
+        { local.deleteCategory(id) },
+        { api.deleteCategory(id) },
+    )
+
     // ---------- 账单 ----------
 
     suspend fun loadTransactions(

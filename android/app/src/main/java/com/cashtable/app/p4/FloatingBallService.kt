@@ -24,6 +24,7 @@ import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import com.cashtable.app.MainActivity
+import com.cashtable.app.data.CrashLog
 import kotlin.math.abs
 
 /**
@@ -42,14 +43,21 @@ class FloatingBallService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        ServiceCompat.startForeground(
-            this,
-            NOTIFY_ID,
-            buildNotification(),
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
-            } else 0,
-        )
+        try {
+            ServiceCompat.startForeground(
+                this,
+                NOTIFY_ID,
+                buildNotification(),
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+                } else 0,
+            )
+        } catch (e: Exception) {
+            // 前台服务启动失败（系统限制/通知权限等）：记录日志并退出，避免崩溃
+            CrashLog.log(this, "FGS_FAIL", "悬浮球前台服务启动失败: ${e.stackTraceToString()}")
+            stopSelf()
+            return
+        }
         isActive = true
         showFloatingBall()
     }
@@ -118,6 +126,8 @@ class FloatingBallService : Service() {
         try {
             windowManager?.addView(ballView, ballParams)
         } catch (e: Exception) {
+            // 悬浮窗权限已授予但添加视图仍失败（部分机型限制）：记录日志
+            CrashLog.log(this, "OVERLAY_FAIL", "悬浮窗添加失败（权限授予后未正常生效）: ${e.stackTraceToString()}")
             toast("未获得悬浮窗权限，请到「我的 → 悬浮球记账」开启")
         }
     }
@@ -139,8 +149,11 @@ class FloatingBallService : Service() {
                         startActivity(intent)
                         return
                     }
+                    // 授权会话仍在但取帧失败（授权后未正常生效的典型表现）：记录日志
+                    CrashLog.log(this, "CAPTURE_FAIL", "自动截屏失败（授权会话存活但取帧失败）")
                     toast("自动截屏失败，请手动截屏后点击悬浮球")
                 } else {
+                    CrashLog.log(this, "PROJECTION_EXPIRED", "自动截屏授权已失效（服务未就绪）")
                     toast("自动截屏授权已失效，请手动截屏，或到设置重新开启悬浮球")
                 }
                 // 自动模式降级：仍走手动流程（用户已系统截屏的场景可正常识别）

@@ -32,6 +32,12 @@ interface ApiService {
     @POST("api/categories/")
     suspend fun createCategory(@Body body: CategoryCreateRequest): CategoryDto
 
+    @PATCH("api/categories/{cid}/")
+    suspend fun updateCategory(@Path("cid") cid: Int, @Body body: CategoryUpdateRequest): CategoryDto
+
+    @DELETE("api/categories/{cid}/")
+    suspend fun deleteCategory(@Path("cid") cid: Int)
+
     @GET("api/transactions/")
     suspend fun transactions(
         @Query("month") month: String? = null,

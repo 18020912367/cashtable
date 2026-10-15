@@ -24,6 +24,7 @@ import android.view.WindowManager
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
+import com.cashtable.app.data.CrashLog
 import java.io.File
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -65,6 +66,8 @@ class ScreenCaptureService : Service() {
             startCapture(resultCode, resultData)
         } catch (e: Exception) {
             releaseLocked()
+            // MediaProjection 授权后初始化仍失败（授权未正常生效/系统限制）：记录日志
+            CrashLog.log(this, "PROJECTION_FAIL", "屏幕截取初始化失败: ${e.stackTraceToString()}")
             toast("屏幕截取初始化失败：${e.message}")
             stopSelf()
         }
